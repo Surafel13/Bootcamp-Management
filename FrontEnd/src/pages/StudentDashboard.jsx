@@ -25,8 +25,7 @@ import Profile from './dashboard/Profile';
 import Settings from './dashboard/Settings';
 import Resources from './dashboard/Resources';
 import Notifications from './dashboard/Notifications';
-
-const StudentDashboard = () => {
+const StudentDashboard = ({ onLogout }) => {
   const [activePage, setActivePage] = useState('Sessions');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -191,9 +190,10 @@ const StudentDashboard = () => {
                   >
                     <SettingsIcon size={16} /> Settings
                   </button>
-                  <div className="my-1 border-t border-surface-border dark:border-[#2D3748]"></div>
+                  <div className="my-1 border-t border-gray-200 dark:border-slate-700"></div>
                   <button 
-                    className="w-full text-left px-4 py-2 text-sm text-danger hover:bg-danger/10 transition-colors flex items-center gap-2"
+                    onClick={onLogout}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-danger dark:hover:bg-danger/10 transition-colors flex items-center gap-2"
                   >
                     <LogOut size={16} /> Logout
                   </button>
