@@ -12,60 +12,61 @@ const Profile = () => {
   };
 
   return (
-    <div className="flex items-center justify-center py-12 animate-in fade-in duration-700">
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm w-full max-w-sm overflow-hidden text-center relative">
-        {/* Compact Header */}
-        <div className="h-16 bg-indigo-600 relative">
-           <div className="absolute inset-0 bg-gradient-to-r from-indigo-700 to-indigo-500 opacity-20"></div>
+    <div className="flex items-center justify-center py-10">
+      <div className="card w-full max-w-md !p-0 overflow-hidden text-center relative">
+        {/* Banner */}
+        <div className="h-32 bg-primary relative">
+           <div className="absolute inset-0 bg-gradient-to-br from-primary-hover to-primary opacity-90"></div>
+           <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px'}}></div>
         </div>
         
-        <div className="px-6 pb-8 relative">
-           <div className="h-16 w-16 rounded-xl bg-white p-1 shadow-md mx-auto -mt-8 mb-4 border border-gray-50 transition-transform duration-500 hover:scale-105">
-              <div className="h-full w-full rounded-lg bg-gray-50 flex items-center justify-center text-indigo-600 font-black text-xl border border-gray-100 shadow-inner">
+        <div className="px-8 pb-10 relative">
+           <div className="h-24 w-24 rounded-3xl bg-white p-1.5 shadow-xl mx-auto -mt-12 mb-6 border-4 border-white transition-transform duration-500 hover:scale-105">
+              <div className="h-full w-full rounded-[20px] bg-primary-soft flex items-center justify-center text-primary font-bold text-3xl shadow-inner uppercase tracking-tighter">
                 AJ
               </div>
            </div>
            
-           <h3 className="text-sm font-bold text-gray-900 mb-0.5 tracking-tight">{profile.name}</h3>
-           <p className="text-[9px] text-indigo-600 font-bold tracking-[0.3em] uppercase mb-8 flex items-center justify-center gap-1.5 px-3 py-1 bg-indigo-50/50 rounded-full w-fit mx-auto">
-             <ShieldCheck size={12} className="animate-pulse" /> {profile.division}
-           </p>
+           <h3 className="text-2xl font-bold text-text-primary mb-1">{profile.name}</h3>
+           <div className="badge badge-purple px-4 py-1.5 font-bold tracking-widest uppercase mb-10">
+             {profile.division}
+           </div>
 
-           <div className="space-y-2 text-left">
-              <div className="group flex items-center gap-4 p-3 bg-gray-50/50 rounded-lg border border-gray-50 hover:bg-white hover:border-indigo-100 transition-all duration-300 shadow-inner">
-                 <div className="h-8 w-8 bg-white rounded-md flex items-center justify-center text-gray-200 group-hover:text-indigo-600 transition-colors shadow-sm">
-                    <Mail size={14} />
+           <div className="space-y-4 text-left">
+              <div className="group flex items-center gap-5 p-4 bg-surface-bg rounded-2xl border border-surface-border hover:bg-white hover:border-primary/30 transition-all duration-300">
+                 <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-text-secondary group-hover:text-primary transition-colors shadow-soft">
+                    <Mail size={18} />
                  </div>
                  <div className="flex-1">
-                    <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest leading-none block mb-1">Electronic Mail</span>
-                    <span className="text-[11px] font-bold text-gray-800 leading-tight">{profile.email}</span>
+                    <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest block mb-0.5">Contact Email</span>
+                    <span className="text-sm font-semibold text-text-primary">{profile.email}</span>
                  </div>
               </div>
 
-              <div className="group flex items-center gap-4 p-3 bg-gray-50/50 rounded-lg border border-gray-50 hover:bg-white hover:border-indigo-100 transition-all duration-300 shadow-inner">
-                 <div className="h-8 w-8 bg-white rounded-md flex items-center justify-center text-gray-200 group-hover:text-indigo-600 transition-colors shadow-sm">
-                    <Phone size={14} />
+              <div className="group flex items-center gap-5 p-4 bg-surface-bg rounded-2xl border border-surface-border hover:bg-white hover:border-primary/30 transition-all duration-300">
+                 <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-text-secondary group-hover:text-primary transition-colors shadow-soft">
+                    <Phone size={18} />
                  </div>
                  <div className="flex-1">
-                    <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest leading-none block mb-1">Direct Liaison</span>
-                    <span className="text-[11px] font-bold text-gray-800 leading-tight">{profile.phone}</span>
+                    <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest block mb-0.5">Mobile Liaison</span>
+                    <span className="text-sm font-semibold text-text-primary">{profile.phone}</span>
                  </div>
               </div>
 
-              <div className="group flex items-center gap-4 p-3 bg-gray-50/50 rounded-lg border border-gray-50 hover:bg-white hover:border-indigo-100 transition-all duration-300 shadow-inner">
-                 <div className="h-8 w-8 bg-white rounded-md flex items-center justify-center text-gray-200 group-hover:text-indigo-600 transition-colors shadow-sm">
-                    <Bookmark size={14} />
+              <div className="group flex items-center gap-5 p-4 bg-surface-bg rounded-2xl border border-surface-border hover:bg-white hover:border-primary/30 transition-all duration-300">
+                 <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-text-secondary group-hover:text-primary transition-colors shadow-soft">
+                    <Bookmark size={18} />
                  </div>
                  <div className="flex-1">
-                    <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest leading-none block mb-1">Registry Code</span>
-                    <span className="text-[11px] font-bold text-gray-800 leading-tight">{profile.id}</span>
+                    <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest block mb-0.5">Registry ID</span>
+                    <span className="text-sm font-semibold text-text-primary uppercase">{profile.id}</span>
                  </div>
               </div>
            </div>
 
-           <div className="mt-8 pt-6 border-t border-gray-50">
-              <p className="text-[9px] text-gray-300 font-bold italic uppercase tracking-[0.2em]">
-                Registry updates locked by system admin
+           <div className="mt-10 pt-8 border-t border-surface-border">
+              <p className="text-xs text-text-secondary font-medium italic">
+                Registry updates are restricted to administration personnel only. Contact support for changes.
               </p>
            </div>
         </div>

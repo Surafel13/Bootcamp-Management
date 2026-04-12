@@ -8,29 +8,32 @@ const Attendance = () => {
   );
 
   return (
-    <div className="flex flex-col items-center justify-center space-y-8 py-6">
-      <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm w-full max-w-4xl overflow-hidden">
-        <h3 className="text-xs font-black uppercase tracking-[0.3em] text-gray-400 mb-8 text-center">Engagement Heatmap</h3>
+    <div className="flex flex-col items-center justify-center space-y-8 py-4">
+      <div className="card w-full max-w-4xl overflow-hidden">
+        <div className="mb-8">
+          <h3 className="text-xl font-bold text-text-primary">Engagement Tracking</h3>
+          <p className="text-sm text-text-secondary mt-1">Daily attendance overview for the current semester</p>
+        </div>
         
-        <div className="flex flex-col gap-4 overflow-x-auto scrollbar-hide pb-4">
+        <div className="flex flex-col gap-6 overflow-x-auto scrollbar-hide pb-4">
           {/* Day Num labels */}
-          <div className="flex gap-1.5 mb-1 ml-12">
+          <div className="flex gap-1.5 mb-1 ml-14">
              {Array.from({ length: daysInMonth }).map((_, i) => (
-                <div key={i} className="w-5 text-[8px] text-center text-gray-300 font-black uppercase tracking-tighter">{(i + 1).toString().padStart(2, '0')}</div>
+                <div key={i} className="w-6 text-[10px] text-center text-text-secondary font-bold uppercase tracking-tighter">{(i + 1).toString().padStart(2, '0')}</div>
              ))}
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {heatmapData.map((row, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-10 text-[10px] text-gray-900 font-black uppercase tracking-widest">{months[i]}</div>
+              <div key={i} className="flex items-center gap-4">
+                <div className="w-10 text-[12px] text-text-primary font-bold uppercase tracking-wide">{months[i]}</div>
                 <div className="flex gap-1.5">
                   {row.map((active, j) => (
                     <div 
                       key={j} 
                       title={`${months[i]} ${j + 1}: ${active ? 'Attended' : 'No Session'}`}
-                      className={`h-5 w-5 rounded-[4px] border transition-all cursor-pointer hover:ring-2 hover:ring-indigo-300 ${
-                        active ? 'bg-indigo-600 border-indigo-600 shadow-sm shadow-indigo-100' : 'bg-gray-50 border-gray-100 shadow-inner'
+                      className={`h-6 w-6 rounded-lg transition-all cursor-pointer hover:ring-2 hover:ring-primary/40 ${
+                        active ? 'bg-primary shadow-lg shadow-primary/20' : 'bg-surface-bg border border-surface-border'
                       }`}
                     ></div>
                   ))}
@@ -40,24 +43,27 @@ const Attendance = () => {
           </div>
         </div>
 
-        <div className="mt-8 flex items-center justify-center gap-8 pt-6 border-t border-gray-50">
-           <div className="flex items-center gap-2">
-              <div className="h-3 w-3 bg-gray-50 border border-gray-100 rounded-[3px]"></div>
-              <span className="text-[10px] text-gray-400 font-bold tracking-widest uppercase">No Activity</span>
-           </div>
-           <div className="flex items-center gap-2">
-              <div className="h-3 w-3 bg-indigo-600 rounded-[3px]"></div>
-              <span className="text-[10px] text-gray-400 font-bold tracking-widest uppercase">Check-in</span>
-           </div>
-           <div className="text-[9px] text-gray-300 font-black italic uppercase tracking-[0.2em]">
-             Interactive Grid Assessment
-           </div>
+        <div className="mt-8 flex items-center justify-between pt-6 border-t border-surface-border">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 bg-surface-bg border border-surface-border rounded-sm"></div>
+              <span className="text-[12px] text-text-secondary font-semibold uppercase tracking-wider">No Activity</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 bg-primary rounded-sm shadow-sm shadow-primary/30"></div>
+              <span className="text-[12px] text-text-secondary font-semibold uppercase tracking-wider">Check-in</span>
+            </div>
+          </div>
+          
+          <div className="badge badge-purple px-4 py-1.5 font-bold uppercase tracking-widest">
+            84% Average Attendance
+          </div>
         </div>
       </div>
       
-      <div className="p-4 bg-indigo-50/30 rounded-lg border border-indigo-100/30 text-center max-w-sm">
-         <p className="text-[10px] text-indigo-900/40 font-bold leading-relaxed uppercase tracking-widest">
-           Visual distribution of your physical and digital presence across academy sessions.
+      <div className="p-6 bg-primary-soft/50 rounded-2xl border border-primary/10 text-center max-w-lg">
+         <p className="text-sm text-primary font-medium leading-relaxed">
+           This visual distribution helps you monitor your physical and digital presence across academy sessions. Maintain high attendance to stay eligible for certifications.
          </p>
       </div>
     </div>

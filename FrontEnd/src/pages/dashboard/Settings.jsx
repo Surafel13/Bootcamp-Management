@@ -3,94 +3,103 @@ import { Lock, Bell, LogOut, ChevronRight, Shield, Globe } from 'lucide-react';
 
 const Settings = () => {
   return (
-    <div className="max-w-xl mx-auto space-y-4 py-4">
+    <div className="max-w-2xl mx-auto space-y-6 py-4">
+      <div className="flex flex-col mb-8">
+        <h3 className="text-2xl font-bold text-text-primary">Account Settings</h3>
+        <p className="text-sm text-text-secondary mt-1">Manage your security preferences and application experience</p>
+      </div>
+
       {/* Security */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden group hover:border-indigo-100 transition-all duration-300">
-        <div className="p-3 border-b border-gray-50 flex items-center gap-3">
-           <div className="h-7 w-7 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600">
-              <Shield size={14} />
+      <div className="card !p-0 overflow-hidden">
+        <div className="px-6 py-4 border-b border-surface-border bg-surface-bg/30">
+           <div className="flex items-center gap-3">
+              <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                 <Shield size={18} />
+              </div>
+              <p className="text-sm font-bold text-text-primary uppercase tracking-wider">Security & Privacy</p>
            </div>
-           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Security Layer</h3>
         </div>
-        <div className="divide-y divide-gray-50">
-           <button className="w-full p-4 flex items-center justify-between hover:bg-gray-50/50 transition-all duration-300 group/item">
+        <div className="divide-y divide-surface-border">
+           <button className="w-full px-6 py-5 flex items-center justify-between hover:bg-surface-bg transition-all duration-300 group">
               <div className="flex items-center gap-4 text-left">
-                 <div className="h-9 w-9 bg-white shadow-sm border border-gray-50 rounded-lg flex items-center justify-center text-gray-200 group-hover/item:text-indigo-600 transition-colors">
-                    <Lock size={14} />
+                 <div className="h-10 w-10 bg-white shadow-soft border border-surface-border rounded-xl flex items-center justify-center text-text-secondary group-hover:text-primary transition-colors">
+                    <Lock size={20} />
                  </div>
                  <div>
-                    <p className="text-[11px] font-black text-gray-900 leading-tight uppercase tracking-tight">Access Registry Crypt</p>
-                    <p className="text-[9px] text-gray-400 font-bold mt-0.5 tracking-tighter uppercase">Last rotation: 12 days ago</p>
+                    <h4 className="text-sm font-bold text-text-primary">Password and Auth</h4>
+                    <p className="text-xs text-text-secondary mt-1">Change your password and manage 2FA settings</p>
                  </div>
               </div>
-              <ChevronRight size={14} className="text-gray-200 group-hover/item:text-indigo-600 transition-all group-hover/item:translate-x-1" />
+              <ChevronRight size={18} className="text-text-secondary group-hover:text-primary transition-all group-hover:translate-x-1" />
            </button>
-           <div className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-all duration-300">
-              <div className="flex items-center gap-4 text-left font-black">
-                 <div className="h-9 w-9 bg-white shadow-sm border border-gray-50 rounded-lg flex items-center justify-center text-gray-200">
-                    <Shield size={14} />
+           <div className="px-6 py-5 flex items-center justify-between">
+              <div className="flex items-center gap-4 text-left">
+                 <div className="h-10 w-10 bg-white shadow-soft border border-surface-border rounded-xl flex items-center justify-center text-text-secondary">
+                    <Shield size={20} />
                  </div>
                  <div>
-                    <p className="text-[11px] font-black text-gray-900 leading-tight uppercase tracking-tight">Active Biometric Node</p>
-                    <p className="text-[9px] text-gray-400 font-bold mt-0.5 tracking-tighter uppercase">Secondary verification</p>
+                    <h4 className="text-sm font-bold text-text-primary">Two-Factor Authentication</h4>
+                    <p className="text-xs text-text-secondary mt-1">Add an extra layer of security to your account</p>
                  </div>
               </div>
-              <div className="h-4 w-9 bg-indigo-600 rounded-full relative p-0.5 shadow-inner">
-                 <div className="h-3 w-3 bg-white rounded-full translate-x-5 shadow-sm transition-transform duration-300"></div>
+              <div className="h-6 w-11 bg-primary rounded-full relative p-1 cursor-pointer shadow-inner shadow-primary/20">
+                 <div className="h-4 w-4 bg-white rounded-full translate-x-5 shadow-sm transition-transform duration-300"></div>
               </div>
            </div>
         </div>
       </div>
 
       {/* Preferences */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden group hover:border-indigo-100 transition-all duration-300">
-        <div className="p-3 border-b border-gray-50 flex items-center gap-3">
-           <div className="h-7 w-7 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600">
-              <Bell size={14} />
+      <div className="card !p-0 overflow-hidden">
+        <div className="px-6 py-4 border-b border-surface-border bg-surface-bg/30">
+           <div className="flex items-center gap-3">
+              <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                 <Bell size={18} />
+              </div>
+              <p className="text-sm font-bold text-text-primary uppercase tracking-wider">Application Experience</p>
            </div>
-           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Experience</h3>
         </div>
-        <div className="divide-y divide-gray-50 text-left">
-           <div className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-all duration-300">
+        <div className="divide-y divide-surface-border">
+           <div className="px-6 py-5 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                 <div className="h-9 w-9 bg-white shadow-sm border border-gray-50 rounded-lg flex items-center justify-center text-gray-200">
-                    <Bell size={14} />
+                 <div className="h-10 w-10 bg-white shadow-soft border border-surface-border rounded-xl flex items-center justify-center text-text-secondary">
+                    <Bell size={20} />
                  </div>
                  <div>
-                    <p className="text-[11px] font-black text-gray-900 leading-tight uppercase tracking-tight">Telemetric Pings</p>
-                    <p className="text-[9px] text-gray-400 font-bold mt-0.5 tracking-tighter uppercase">Direct-to-OS signaling</p>
+                    <h4 className="text-sm font-bold text-text-primary">Push Notifications</h4>
+                    <p className="text-xs text-text-secondary mt-1">Receive alerts about upcoming sessions</p>
                  </div>
               </div>
-              <div className="h-4 w-9 bg-gray-100 rounded-full relative p-0.5 shadow-inner">
-                 <div className="h-3 w-3 bg-white rounded-full translate-x-0 shadow-sm transition-transform duration-300"></div>
+              <div className="h-6 w-11 bg-surface-border rounded-full relative p-1 cursor-pointer">
+                 <div className="h-4 w-4 bg-white rounded-full translate-x-0 shadow-sm transition-transform duration-300"></div>
               </div>
            </div>
-           <div className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-all duration-300 group/item">
+           <div className="px-6 py-5 flex items-center justify-between group">
               <div className="flex items-center gap-4">
-                 <div className="h-9 w-9 bg-white shadow-sm border border-gray-50 rounded-lg flex items-center justify-center text-gray-200 group-hover/item:text-indigo-600 transition-colors">
-                    <Globe size={14} />
+                 <div className="h-10 w-10 bg-white shadow-soft border border-surface-border rounded-xl flex items-center justify-center text-text-secondary group-hover:text-primary transition-colors">
+                    <Globe size={20} />
                  </div>
                  <div>
-                    <p className="text-[11px] font-black text-gray-900 leading-tight uppercase tracking-tight">Locale Translation</p>
-                    <p className="text-[9px] text-gray-400 font-bold mt-0.5 tracking-tighter uppercase">Auto-detection active</p>
+                    <h4 className="text-sm font-bold text-text-primary">Language Settings</h4>
+                    <p className="text-xs text-text-secondary mt-1">Commonly used for international sessions</p>
                  </div>
               </div>
-              <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest cursor-pointer hover:underline px-2 py-1 bg-indigo-50 rounded">English (US)</span>
+              <span className="badge badge-purple px-3 py-1 font-bold text-[10px] uppercase tracking-wider cursor-pointer hover:bg-primary hover:text-white transition-colors">English (US)</span>
            </div>
         </div>
       </div>
 
-      <button className="w-full p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center justify-between text-rose-500 hover:bg-rose-100 transition-all duration-300 group mt-12 shadow-sm shadow-rose-100/30">
+      <button className="w-full card !p-5 border-danger/20 bg-danger/5 flex items-center justify-between text-danger hover:bg-danger/10 transition-all duration-300 group mt-8">
          <div className="flex items-center gap-4 text-left">
-            <div className="h-10 w-10 bg-white rounded-lg flex items-center justify-center shadow-inner">
-               <LogOut size={16} />
+            <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center shadow-soft text-danger">
+               <LogOut size={22} />
             </div>
             <div>
-               <span className="text-[11px] font-black leading-tight block uppercase tracking-tight">Terminate Data Link</span>
-               <span className="text-[9px] text-rose-300 font-bold uppercase tracking-tighter">Immediate session wipe</span>
+               <span className="text-base font-bold leading-tight block">Terminate Data Session</span>
+               <span className="text-xs text-danger/60 font-medium mt-1 block">Immediate session wipe and account logout</span>
             </div>
          </div>
-         <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform opacity-30" />
+         <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
       </button>
     </div>
   );

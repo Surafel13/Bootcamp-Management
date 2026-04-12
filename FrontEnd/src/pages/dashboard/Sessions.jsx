@@ -27,37 +27,41 @@ const Sessions = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <section>
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-sm font-bold text-gray-900">Upcoming Sessions</h3>
-          <button className="text-indigo-600 text-[11px] font-black uppercase tracking-widest hover:underline flex items-center gap-1 transition">
-            View all <ChevronRight size={12} />
+        <div className="flex justify-between items-end mb-6">
+          <div>
+            <h3 className="text-xl font-bold text-text-primary">Upcoming Sessions</h3>
+            <p className="text-sm text-text-secondary mt-1">Don't miss your next learning opportunity</p>
+          </div>
+          <button className="text-primary text-sm font-semibold hover:underline flex items-center gap-1 transition-all">
+            View all sessions <ChevronRight size={16} />
           </button>
         </div>
-        <div className="space-y-2">
+        
+        <div className="grid gap-4">
           {upcomingSessions.map((session, index) => (
-            <div key={index} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between hover:bg-gray-50/50 transition cursor-default">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-indigo-600 flex items-center justify-center text-white shrink-0 shadow-sm shadow-indigo-100">
-                  <Calendar size={20} />
+            <div key={index} className="card flex items-center justify-between hover:border-primary/30 transition-all cursor-default group">
+              <div className="flex items-center gap-5">
+                <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                  <Calendar size={24} />
                 </div>
                 <div>
-                  <h4 className="font-bold text-xs text-gray-900 leading-tight mb-0.5">{session.title}</h4>
-                  <div className="flex items-center gap-3 text-[10px] text-gray-400 font-bold uppercase tracking-tight">
-                    <span className="flex items-center gap-1">
-                      <span className={`w-1.5 h-1.5 rounded-full ${session.color}`}></span>
+                  <h4 className="font-bold text-base text-text-primary mb-1">{session.title}</h4>
+                  <div className="flex items-center gap-4 text-xs text-text-secondary font-medium">
+                    <span className="flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${session.color}`}></span>
                       {session.category}
                     </span>
-                    <span>•</span>
+                    <span className="w-1 h-1 rounded-full bg-surface-border"></span>
                     <span>{session.date}</span>
-                    <span>•</span>
+                    <span className="w-1 h-1 rounded-full bg-surface-border"></span>
                     <span>{session.time}</span>
                   </div>
                 </div>
               </div>
-              <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition active:scale-95 shadow-sm">
-                Details
+              <button className="btn-primary">
+                Join Session
               </button>
             </div>
           ))}
@@ -65,32 +69,34 @@ const Sessions = () => {
       </section>
 
       <section>
-        <div className="mb-3">
-          <h3 className="text-sm font-bold text-gray-900">Recent Sessions</h3>
+        <div className="mb-6">
+          <h3 className="text-xl font-bold text-text-primary">Recent History</h3>
+          <p className="text-sm text-text-secondary mt-1">Your completion record</p>
         </div>
-        <div className="space-y-2">
-          <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between hover:bg-gray-50/50 transition cursor-default">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100 shrink-0">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        
+        <div className="grid gap-4">
+          <div className="card flex items-center justify-between hover:border-green-200 transition-all cursor-default">
+            <div className="flex items-center gap-5">
+              <div className="h-12 w-12 rounded-2xl bg-success/10 flex items-center justify-center text-success border border-success/20 shrink-0">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
               </div>
               <div>
-                <h4 className="font-bold text-xs text-gray-900 leading-tight mb-0.5">Web Development Workshop</h4>
-                <div className="flex items-center gap-3 text-[10px] text-gray-400 font-bold uppercase tracking-tight">
-                  <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-teal-400"></span>
+                <h4 className="font-bold text-base text-text-primary mb-1">Web Development Workshop</h4>
+                <div className="flex items-center gap-4 text-xs text-text-secondary font-medium">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-success"></span>
                     Developmental
                   </span>
-                  <span>•</span>
+                  <span className="w-1 h-1 rounded-full bg-surface-border"></span>
                   <span>Apr 8, 2026</span>
-                  <span>•</span>
+                  <span className="w-1 h-1 rounded-full bg-surface-border"></span>
                   <span>2:00 PM - 4:00 PM</span>
                 </div>
               </div>
             </div>
-            <div className="bg-teal-50 text-teal-700 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-[0.2em] border border-teal-100">
-              Attended
-            </div>
+            <span className="badge badge-green">
+              COMPLETED
+            </span>
           </div>
         </div>
       </section>

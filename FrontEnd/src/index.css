@@ -1,3 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #F5F6FA;
+    color: #1F2937;
+    @apply font-sans;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-[#7C6CF2] text-white py-2 px-4 rounded-[10px] transition-all hover:bg-[#6D5CE7] active:scale-95 text-sm font-semibold;
+  }
+
+  .btn-secondary {
+    @apply bg-[#E6E8EC] text-[#1F2937] py-2 px-4 rounded-[10px] transition-all hover:bg-gray-200 active:scale-95 text-sm font-semibold;
+  }
+
+  .card {
+    @apply bg-white rounded-[16px] shadow-soft border border-[#E6E8EC] p-6;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-purple {
+    @apply bg-[#F3F2FF] text-[#7C6CF2];
+  }
+
+  .badge-green {
+    @apply bg-green-100 text-[#22C55E];
+  }
+
+  .table-header {
+    @apply text-xs uppercase tracking-wider text-[#6B7280] font-semibold border-b border-[#E6E8EC] pb-3;
+  }
+}
