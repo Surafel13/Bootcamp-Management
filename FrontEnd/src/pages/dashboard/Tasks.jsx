@@ -30,7 +30,9 @@ const [selectedTask, setSelectedTask] = useState(null);
           'Implement CSS Grid/Flexbox',
           'Include a contact form with validation',
           'Ensure 90+ Lighthouse accessibility score'
-        ]
+        ],
+        adminNotes: 'Please ensure your code is well-commented. Host the live site on Vercel or Netlify and provide the final URL in the external link field.',
+        allowedFormats: ['GitHub Link', 'External Link', 'ZIP']
       },
       { 
         id: 2, 
@@ -44,7 +46,10 @@ const [selectedTask, setSelectedTask] = useState(null);
           'Implement MergeSort in-place',
           'Benchmark results comparison'
         ],
-        lastSubmitted: 'Apr 10, 2:30 PM'
+        lastSubmitted: 'Apr 10, 2:30 PM',
+        updatedVersion: true,
+        adminNotes: 'Your implementation summary must include the benchmark charts.',
+        allowedFormats: ['PDF', 'GitHub Link', 'Text Answer']
       },
     ],
     Group: [
@@ -59,20 +64,24 @@ const [selectedTask, setSelectedTask] = useState(null);
           'JWT authentication',
           'Redis caching layer',
           'Docker containerization'
-        ]
+        ],
+        adminNotes: 'Upload your Postman collection as a ZIP file or link your public Swagger documentation.',
+        allowedFormats: ['ZIP', 'GitHub Link', 'External Link']
       },
       { 
         id: 4, 
         title: 'Real-time Chat Application', 
-        deadline: 'Apr 25', 
-        status: 'Late',
+        deadline: 'Apr 05', 
+        status: 'Closed',
         description: 'Build a group chat application with real-time updates and message history.',
         requirements: [
           'WebSocket protocol',
           'State persistence',
           'Typing indicators',
           'Message read receipts'
-        ]
+        ],
+        adminNotes: 'No late submissions accepted for this milestone.',
+        allowedFormats: ['GitHub Link', 'ZIP']
       }
     ]
   };
@@ -117,7 +126,7 @@ const [selectedTask, setSelectedTask] = useState(null);
                 </div>
                 <span className={`badge px-3 py-1 font-bold tracking-wider ${
                   task.status === 'Submitted' ? 'badge-green' : 
-                  task.status === 'Late' ? 'bg-red-50 text-danger' : 'bg-amber-50 text-amber-600'
+                  (task.status === 'Closed' || task.status === 'Late') ? 'bg-red-50 text-danger dark:bg-red-900/20 dark:text-red-400' : 'bg-amber-50 text-amber-600'
                 }`}>
                   {task.status.toUpperCase()}
                 </span>
@@ -141,115 +150,203 @@ const [selectedTask, setSelectedTask] = useState(null);
       {selectedTask && (
         <div className="fixed inset-0 z-[60] flex justify-end">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-md" onClick={() => setSelectedTask(null)}></div>
-          <div className="relative w-full max-w-xl bg-white dark:bg-slate-800 h-screen shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-500 flex flex-col">
+          <div className="relative w-full max-w-5xl bg-gray-50 dark:bg-slate-900 h-screen shadow-2xl animate-in slide-in-from-right duration-500 flex flex-col">
             {/* Panel Header */}
-            <div className="p-8 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-800 sticky top-0 z-10">
+            <div className="p-6 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-800">
               <div className="flex items-center gap-4">
                  <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
                     <FileText size={20} />
                  </div>
-                 <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Assignment Details</h3>
+                 <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Assignment Submission</h3>
               </div>
               <button 
                 onClick={() => setSelectedTask(null)}
-                className="p-2 hover:bg-gray-50 dark:bg-slate-900 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white transition-all"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all"
               >
                 <X size={24} />
               </button>
             </div>
 
-            <div className="p-10 space-y-12 flex-1">
-              {/* Task Info */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                   <span className={`badge px-4 py-1.5 font-bold tracking-widest ${
-                      selectedTask.status === 'Submitted' ? 'badge-green' : 'bg-amber-50 text-amber-600'
-                   }`}>
-                      {selectedTask.status.toUpperCase()}
-                   </span>
-                   <div className="text-sm text-danger font-bold flex items-center gap-2">
-                      <Clock size={16} /> Deadline: {selectedTask.deadline}
-                   </div>
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">{selectedTask.title}</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed">{selectedTask.description}</p>
-              </div>
-
-              {/* Requirements */}
-              <div className="space-y-6">
-                 <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em]">Core Requirements</h4>
-                 <div className="grid grid-cols-1 gap-3">
-                    {selectedTask.requirements.map((req, i) => (
-                      <div key={i} className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-700">
-                         <div className="p-1 bg-success/10 rounded-full">
-                            <CheckCircle2 size={16} className="text-success" />
-                         </div>
-                         <span className="text-sm font-semibold text-gray-900 dark:text-white">{req}</span>
-                      </div>
-                    ))}
-                 </div>
-              </div>
-
-              {/* Submission Portal */}
-              <div className="space-y-8 pt-8 border-t border-gray-200 dark:border-slate-700">
-                 <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em]">Submission Portal</h4>
-                 
-                 {selectedTask.lastSubmitted && (
-                    <div className="bg-success text-white p-5 rounded-2xl flex items-center justify-between shadow-lg shadow-success/20">
-                       <div className="flex items-center gap-4">
-                          <CheckCircle2 size={24} />
-                          <div>
-                             <p className="text-sm font-bold uppercase tracking-tight">Assignment Submitted</p>
-                             <p className="text-xs opacity-90 font-medium">Recorded on {selectedTask.lastSubmitted}</p>
-                          </div>
-                       </div>
+            <div className="flex flex-1 overflow-hidden flex-col-reverse md:flex-row">
+              {/* Main Area: Submission Portal */}
+              <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-gray-50 dark:bg-slate-900">
+                 {/* Warning Message if Closed */}
+                 {(selectedTask.status === 'Closed' || selectedTask.status === 'Late') && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 p-4 rounded-xl flex items-center gap-3">
+                       <X size={20} />
+                       <span className="text-sm font-bold">Submission closed – deadline passed</span>
                     </div>
                  )}
 
-                 {/* Upload Area */}
-                 <div className="border-2 border-dashed border-primary/20 rounded-3xl p-10 flex flex-col items-center justify-center text-center bg-primary/5 hover:border-primary hover:bg-primary/[0.08] transition-all duration-300 cursor-pointer group">
-                    <div className="h-16 w-16 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-gray-500 dark:text-gray-400 group-hover:text-primary shadow-soft border border-gray-200 dark:border-slate-700 transition-all mb-4">
-                       <Upload size={32} />
+                 {selectedTask.lastSubmitted && (
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl flex flex-col gap-4 border border-gray-200 dark:border-slate-700 shadow-sm">
+                       <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-3 text-success">
+                            <CheckCircle2 size={24} />
+                            <h4 className="font-bold text-gray-900 dark:text-white">Submission Recorded</h4>
+                         </div>
+                         {selectedTask.updatedVersion && (
+                           <span className="badge bg-primary/10 text-primary uppercase font-bold px-3 py-1 text-xs">Updated Version</span>
+                         )}
+                       </div>
+                       <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                          Last submitted on <strong className="text-gray-900 dark:text-white">{selectedTask.lastSubmitted}</strong>
+                       </p>
                     </div>
-                    <span className="text-sm text-gray-900 dark:text-white font-bold">Drop your project assets here</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">PDF, ZIP, IMAGES | MAX 10MB</span>
-                 </div>
+                 )}
 
-                 {/* Inputs */}
-                 <div className="space-y-5">
-                    <div className="space-y-2">
-                       <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest px-1">GitHub Repository</label>
-                       <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500 dark:text-gray-400">
-                             <GitBranch size={16} />
+                 <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm space-y-8">
+                    <h4 className="text-lg font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-slate-700 pb-4">Provide Your Work</h4>
+                    
+                    {/* Upload Area */}
+                    <div className="space-y-3">
+                       <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest px-1">File Upload</label>
+                       <div className={`border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center text-center transition-all duration-300 ${
+                         (selectedTask.status === 'Closed' || selectedTask.status === 'Late') 
+                           ? 'border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed'
+                           : 'border-primary/20 bg-primary/5 hover:border-primary hover:bg-primary/[0.08] cursor-pointer group'
+                       }`}>
+                          <div className={`h-14 w-14 rounded-2xl flex items-center justify-center shadow-soft border mb-3 transition-all ${
+                            (selectedTask.status === 'Closed' || selectedTask.status === 'Late')
+                              ? 'bg-gray-100 border-gray-200 text-gray-400'
+                              : 'bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400 group-hover:text-primary border-gray-200 dark:border-slate-700'
+                          }`}>
+                             <Upload size={28} />
                           </div>
-                          <input 
-                            type="text" 
-                            className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl py-3 pl-11 pr-4 text-sm font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                            placeholder="https://github.com/..."
-                          />
+                          <span className="text-sm text-gray-900 dark:text-white font-bold">Drag & drop your files here</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">PDF, ZIP, IMAGES | MAX 10MB</span>
                        </div>
                     </div>
 
-                    <div className="space-y-2">
-                       <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest px-1">Implementation Summary</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                       {/* GitHub Link */}
+                       <div className="space-y-3">
+                          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest px-1">GitHub Link</label>
+                          <div className="relative">
+                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500 dark:text-gray-400">
+                                <GitBranch size={16} />
+                             </div>
+                             <input 
+                               type="text" 
+                               disabled={selectedTask.status === 'Closed' || selectedTask.status === 'Late'}
+                               className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl py-3 pl-11 pr-4 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 outline-none transition-all disabled:opacity-50 disabled:bg-gray-100"
+                               placeholder="https://github.com/..."
+                             />
+                          </div>
+                       </div>
+
+                       {/* External Link */}
+                       <div className="space-y-3">
+                          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest px-1">External Link</label>
+                          <div className="relative">
+                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500 dark:text-gray-400">
+                                <LinkIcon size={16} />
+                             </div>
+                             <input 
+                               type="text" 
+                               disabled={selectedTask.status === 'Closed' || selectedTask.status === 'Late'}
+                               className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl py-3 pl-11 pr-4 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 outline-none transition-all disabled:opacity-50 disabled:bg-gray-100"
+                               placeholder="https://..."
+                             />
+                          </div>
+                       </div>
+                    </div>
+
+                    <div className="space-y-3">
+                       <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest px-1 flex justify-between">
+                         <span>Text Answer</span>
+                         <span className="text-gray-400">(Optional)</span>
+                       </label>
                        <textarea 
                          rows="4" 
-                         className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"
-                         placeholder="Briefly describe your approach..."
+                         disabled={selectedTask.status === 'Closed' || selectedTask.status === 'Late'}
+                         className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none disabled:opacity-50 disabled:bg-gray-100"
+                         placeholder="Add any additional context, answers, or implementation summaries..."
                        ></textarea>
                     </div>
                  </div>
+                 
+                 <div className="flex gap-4 pt-4">
+                    <button 
+                      disabled={selectedTask.status === 'Closed' || selectedTask.status === 'Late'}
+                      className="flex-1 btn-primary py-4 text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    >
+                      {selectedTask.lastSubmitted ? 'Update Submission' : 'Submit Milestone'}
+                    </button>
+                    <button className="px-6 py-4 bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-slate-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition flex items-center gap-2 font-bold shadow-sm">
+                       <History size={20} /> History
+                    </button>
+                 </div>
               </div>
-            </div>
 
-            <div className="p-8 border-t border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex gap-4">
-              <button className="flex-1 btn-primary py-4 text-base">
-                Submit Milestone
-              </button>
-              <button className="px-6 py-4 bg-gray-50 dark:bg-slate-900 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-slate-700 rounded-xl hover:bg-gray-100 dark:bg-slate-900 transition flex items-center gap-2 font-bold">
-                 <History size={20} /> History
-              </button>
+              {/* Sidebar: Task Details */}
+              <div className="w-full md:w-[380px] bg-white dark:bg-slate-800 border-l border-gray-200 dark:border-slate-700 overflow-y-auto p-6 md:p-8 space-y-8 flex-shrink-0">
+                 <div>
+                   <div className="flex items-center justify-between mb-4">
+                      <span className={`badge px-3 py-1 font-bold tracking-wider ${
+                        selectedTask.status === 'Submitted' ? 'badge-green' : 
+                        (selectedTask.status === 'Closed' || selectedTask.status === 'Late') ? 'bg-red-50 text-danger dark:bg-red-900/20 dark:text-red-400' : 'bg-amber-50 text-amber-600'
+                      }`}>
+                         {selectedTask.status.toUpperCase()}
+                      </span>
+                   </div>
+                   <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 leading-tight">{selectedTask.title}</h2>
+                   <div className={`mt-4 p-4 rounded-xl flex items-center gap-3 shadow-sm ${
+                     (selectedTask.status === 'Closed' || selectedTask.status === 'Late') 
+                       ? 'bg-red-50 text-danger border border-red-100' 
+                       : 'bg-amber-50 text-amber-700 border border-amber-100'
+                   }`}>
+                      <Clock size={20} /> 
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider opacity-80">Deadline</p>
+                        <p className="font-bold text-sm">{selectedTask.deadline}</p>
+                      </div>
+                   </div>
+                 </div>
+
+                 <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest border-b border-gray-100 dark:border-slate-700 pb-2">Description</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 font-medium leading-relaxed">{selectedTask.description}</p>
+                 </div>
+
+                 {selectedTask.adminNotes && (
+                   <div className="space-y-4 bg-primary/5 p-5 rounded-2xl border border-primary/10">
+                      <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+                        <FileText size={14} /> Admin Notes
+                      </h4>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-relaxed">{selectedTask.adminNotes}</p>
+                   </div>
+                 )}
+
+                 {selectedTask.allowedFormats && (
+                   <div className="space-y-4">
+                      <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest border-b border-gray-100 dark:border-slate-700 pb-2">Allowed Formats</h4>
+                      <div className="flex flex-wrap gap-2">
+                         {selectedTask.allowedFormats.map((format, i) => (
+                           <span key={i} className="px-3 py-1.5 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg text-xs font-bold text-gray-600 dark:text-gray-300">
+                             {format}
+                           </span>
+                         ))}
+                      </div>
+                   </div>
+                 )}
+
+                 {selectedTask.requirements && selectedTask.requirements.length > 0 && (
+                 <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest border-b border-gray-100 dark:border-slate-700 pb-2">Requirements</h4>
+                    <ul className="space-y-3">
+                       {selectedTask.requirements.map((req, i) => (
+                         <li key={i} className="flex items-start gap-3">
+                            <div className="mt-0.5 min-w-[16px] text-primary">
+                               <CheckCircle2 size={16} />
+                            </div>
+                            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{req}</span>
+                         </li>
+                       ))}
+                    </ul>
+                 </div>
+                 )}
+              </div>
             </div>
           </div>
         </div>
