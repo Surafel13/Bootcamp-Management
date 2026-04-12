@@ -31,8 +31,8 @@ const Sessions = () => {
       <section>
         <div className="flex justify-between items-end mb-6">
           <div>
-            <h3 className="text-xl font-bold text-text-primary">Upcoming Sessions</h3>
-            <p className="text-sm text-text-secondary mt-1">Don't miss your next learning opportunity</p>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Upcoming Sessions</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Don't miss your next learning opportunity</p>
           </div>
           <button className="text-primary text-sm font-semibold hover:underline flex items-center gap-1 transition-all">
             View all sessions <ChevronRight size={16} />
@@ -47,8 +47,8 @@ const Sessions = () => {
                   <Calendar size={24} />
                 </div>
                 <div>
-                  <h4 className="font-bold text-base text-text-primary mb-1">{session.title}</h4>
-                  <div className="flex items-center gap-4 text-xs text-text-secondary font-medium">
+                  <h4 className="font-bold text-base text-gray-900 dark:text-white mb-1">{session.title}</h4>
+                  <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 font-medium">
                     <span className="flex items-center gap-1.5">
                       <span className={`w-2 h-2 rounded-full ${session.color}`}></span>
                       {session.category}
@@ -70,8 +70,8 @@ const Sessions = () => {
 
       <section>
         <div className="mb-6">
-          <h3 className="text-xl font-bold text-text-primary">Recent History</h3>
-          <p className="text-sm text-text-secondary mt-1">Your completion record</p>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">Recent History</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Your completion record</p>
         </div>
         
         <div className="grid gap-4">
@@ -81,8 +81,8 @@ const Sessions = () => {
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
               </div>
               <div>
-                <h4 className="font-bold text-base text-text-primary mb-1">Web Development Workshop</h4>
-                <div className="flex items-center gap-4 text-xs text-text-secondary font-medium">
+                <h4 className="font-bold text-base text-gray-900 dark:text-white mb-1">Web Development Workshop</h4>
+                <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 font-medium">
                   <span className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-success"></span>
                     Developmental

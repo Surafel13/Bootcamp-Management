@@ -5,10 +5,12 @@
 @tailwind utilities;
 
 @layer base {
+  * {
+    @apply transition-colors duration-200;
+  }
+
   body {
-    background-color: #F5F6FA;
-    color: #1F2937;
-    @apply font-sans;
+    @apply font-sans bg-gray-50 text-gray-900 dark:bg-slate-900 dark:text-gray-100;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -22,11 +24,11 @@
   }
 
   .btn-secondary {
-    @apply bg-[#E6E8EC] text-[#1F2937] py-2 px-4 rounded-[10px] transition-all hover:bg-gray-200 active:scale-95 text-sm font-semibold;
+    @apply bg-[#E6E8EC] text-[#1F2937] dark:bg-[#1E293B] dark:text-white py-2 px-4 rounded-[10px] transition-all hover:bg-gray-200 dark:hover:bg-[#2D3748] active:scale-95 text-sm font-semibold;
   }
 
   .card {
-    @apply bg-white rounded-[16px] shadow-soft border border-[#E6E8EC] p-6;
+    @apply bg-white dark:bg-slate-800 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl shadow-sm p-6 hover:shadow-md transition duration-200;
   }
 
   .badge {
@@ -34,14 +36,14 @@
   }
 
   .badge-purple {
-    @apply bg-[#F3F2FF] text-[#7C6CF2];
+    @apply bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300;
   }
 
   .badge-green {
-    @apply bg-green-100 text-[#22C55E];
+    @apply bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300;
   }
 
   .table-header {
-    @apply text-xs uppercase tracking-wider text-[#6B7280] font-semibold border-b border-[#E6E8EC] pb-3;
+    @apply text-xs uppercase tracking-wider text-[#6B7280] dark:text-[#9CA3AF] font-semibold border-b border-[#E6E8EC] dark:border-[#2D3748] pb-3;
   }
 }

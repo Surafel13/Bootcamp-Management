@@ -81,12 +81,12 @@ const [selectedTask, setSelectedTask] = useState(null);
     <div className="space-y-8 max-w-6xl mx-auto pb-10">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h3 className="text-2xl font-bold text-text-primary uppercase tracking-tight">Assignment Portal</h3>
-          <p className="text-sm text-text-secondary mt-1">Submit and track your academic milestones</p>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">Assignment Portal</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Submit and track your academic milestones</p>
         </div>
         
         {/* Navigation Tabs */}
-        <div className="flex bg-white p-1.5 rounded-2xl border border-surface-border shadow-soft w-fit">
+        <div className="flex bg-white dark:bg-slate-800 p-1.5 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-soft w-fit">
           {['Individual', 'Group'].map((tab) => (
             <button
               key={tab}
@@ -94,7 +94,7 @@ const [selectedTask, setSelectedTask] = useState(null);
               className={`px-8 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${
                 activeTab === tab 
                   ? 'bg-primary text-white shadow-lg shadow-primary/25' 
-                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-bg'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white hover:bg-gray-50 dark:bg-slate-900'
               }`}
             >
               {tab}
@@ -122,10 +122,10 @@ const [selectedTask, setSelectedTask] = useState(null);
                   {task.status.toUpperCase()}
                 </span>
              </div>
-             <h4 className="font-bold text-lg text-text-primary mb-2 leading-tight group-hover:text-primary transition-colors">{task.title}</h4>
-             <p className="text-sm text-text-secondary mb-8 line-clamp-3 font-medium leading-relaxed">{task.description}</p>
-             <div className="mt-auto flex items-center justify-between pt-5 border-t border-surface-border">
-                <div className="flex items-center gap-2 text-xs font-semibold text-text-secondary">
+             <h4 className="font-bold text-lg text-gray-900 dark:text-white mb-2 leading-tight group-hover:text-primary transition-colors">{task.title}</h4>
+             <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 line-clamp-3 font-medium leading-relaxed">{task.description}</p>
+             <div className="mt-auto flex items-center justify-between pt-5 border-t border-gray-200 dark:border-slate-700">
+                <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
                   <Clock size={16} className="text-primary/60" /> 
                   <span>Due {task.deadline}</span>
                 </div>
@@ -141,18 +141,18 @@ const [selectedTask, setSelectedTask] = useState(null);
       {selectedTask && (
         <div className="fixed inset-0 z-[60] flex justify-end">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-md" onClick={() => setSelectedTask(null)}></div>
-          <div className="relative w-full max-w-xl bg-white h-screen shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-500 flex flex-col">
+          <div className="relative w-full max-w-xl bg-white dark:bg-slate-800 h-screen shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-500 flex flex-col">
             {/* Panel Header */}
-            <div className="p-8 border-b border-surface-border flex justify-between items-center bg-white sticky top-0 z-10">
+            <div className="p-8 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-800 sticky top-0 z-10">
               <div className="flex items-center gap-4">
                  <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
                     <FileText size={20} />
                  </div>
-                 <h3 className="text-lg font-bold text-text-primary tracking-tight">Assignment Details</h3>
+                 <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Assignment Details</h3>
               </div>
               <button 
                 onClick={() => setSelectedTask(null)}
-                className="p-2 hover:bg-surface-bg rounded-xl text-text-secondary hover:text-text-primary transition-all"
+                className="p-2 hover:bg-gray-50 dark:bg-slate-900 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white transition-all"
               >
                 <X size={24} />
               </button>
@@ -171,28 +171,28 @@ const [selectedTask, setSelectedTask] = useState(null);
                       <Clock size={16} /> Deadline: {selectedTask.deadline}
                    </div>
                 </div>
-                <h2 className="text-2xl font-bold text-text-primary mb-4 leading-tight">{selectedTask.title}</h2>
-                <p className="text-sm text-text-secondary font-medium leading-relaxed">{selectedTask.description}</p>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">{selectedTask.title}</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed">{selectedTask.description}</p>
               </div>
 
               {/* Requirements */}
               <div className="space-y-6">
-                 <h4 className="text-xs font-bold text-text-secondary uppercase tracking-[0.2em]">Core Requirements</h4>
+                 <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em]">Core Requirements</h4>
                  <div className="grid grid-cols-1 gap-3">
                     {selectedTask.requirements.map((req, i) => (
-                      <div key={i} className="flex items-center gap-4 p-4 bg-surface-bg rounded-2xl border border-surface-border">
+                      <div key={i} className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-700">
                          <div className="p-1 bg-success/10 rounded-full">
                             <CheckCircle2 size={16} className="text-success" />
                          </div>
-                         <span className="text-sm font-semibold text-text-primary">{req}</span>
+                         <span className="text-sm font-semibold text-gray-900 dark:text-white">{req}</span>
                       </div>
                     ))}
                  </div>
               </div>
 
               {/* Submission Portal */}
-              <div className="space-y-8 pt-8 border-t border-surface-border">
-                 <h4 className="text-xs font-bold text-text-secondary uppercase tracking-[0.2em]">Submission Portal</h4>
+              <div className="space-y-8 pt-8 border-t border-gray-200 dark:border-slate-700">
+                 <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em]">Submission Portal</h4>
                  
                  {selectedTask.lastSubmitted && (
                     <div className="bg-success text-white p-5 rounded-2xl flex items-center justify-between shadow-lg shadow-success/20">
@@ -208,34 +208,34 @@ const [selectedTask, setSelectedTask] = useState(null);
 
                  {/* Upload Area */}
                  <div className="border-2 border-dashed border-primary/20 rounded-3xl p-10 flex flex-col items-center justify-center text-center bg-primary/5 hover:border-primary hover:bg-primary/[0.08] transition-all duration-300 cursor-pointer group">
-                    <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center text-text-secondary group-hover:text-primary shadow-soft border border-surface-border transition-all mb-4">
+                    <div className="h-16 w-16 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-gray-500 dark:text-gray-400 group-hover:text-primary shadow-soft border border-gray-200 dark:border-slate-700 transition-all mb-4">
                        <Upload size={32} />
                     </div>
-                    <span className="text-sm text-text-primary font-bold">Drop your project assets here</span>
-                    <span className="text-xs text-text-secondary mt-1 font-medium">PDF, ZIP, IMAGES | MAX 10MB</span>
+                    <span className="text-sm text-gray-900 dark:text-white font-bold">Drop your project assets here</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">PDF, ZIP, IMAGES | MAX 10MB</span>
                  </div>
 
                  {/* Inputs */}
                  <div className="space-y-5">
                     <div className="space-y-2">
-                       <label className="text-xs font-bold text-text-secondary uppercase tracking-widest px-1">GitHub Repository</label>
+                       <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest px-1">GitHub Repository</label>
                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-text-secondary">
+                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500 dark:text-gray-400">
                              <GitBranch size={16} />
                           </div>
                           <input 
                             type="text" 
-                            className="w-full bg-surface-bg border border-surface-border rounded-xl py-3 pl-11 pr-4 text-sm font-semibold text-text-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                            className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl py-3 pl-11 pr-4 text-sm font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                             placeholder="https://github.com/..."
                           />
                        </div>
                     </div>
 
                     <div className="space-y-2">
-                       <label className="text-xs font-bold text-text-secondary uppercase tracking-widest px-1">Implementation Summary</label>
+                       <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest px-1">Implementation Summary</label>
                        <textarea 
                          rows="4" 
-                         className="w-full bg-surface-bg border border-surface-border rounded-xl py-3 px-4 text-sm font-semibold text-text-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"
+                         className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"
                          placeholder="Briefly describe your approach..."
                        ></textarea>
                     </div>
@@ -243,11 +243,11 @@ const [selectedTask, setSelectedTask] = useState(null);
               </div>
             </div>
 
-            <div className="p-8 border-t border-surface-border bg-white flex gap-4">
+            <div className="p-8 border-t border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex gap-4">
               <button className="flex-1 btn-primary py-4 text-base">
                 Submit Milestone
               </button>
-              <button className="px-6 py-4 bg-surface-bg text-text-secondary border border-surface-border rounded-xl hover:bg-gray-100 transition flex items-center gap-2 font-bold">
+              <button className="px-6 py-4 bg-gray-50 dark:bg-slate-900 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-slate-700 rounded-xl hover:bg-gray-100 dark:bg-slate-900 transition flex items-center gap-2 font-bold">
                  <History size={20} /> History
               </button>
             </div>

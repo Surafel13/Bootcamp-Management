@@ -16,28 +16,28 @@ const Scanner = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         <div className="space-y-10">
           <div>
-            <h2 className="text-4xl font-bold text-text-primary mb-6 tracking-tight">Check-in Terminal</h2>
-            <p className="text-text-secondary leading-relaxed text-lg font-medium">Position your session QR code within the viewfinder. Connectivity to the primary bootcamp node is required for validation.</p>
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-6 tracking-tight">Check-in Terminal</h2>
+            <p className="text-gray-500 dark:text-gray-400 leading-relaxed text-lg font-medium">Position your session QR code within the viewfinder. Connectivity to the primary bootcamp node is required for validation.</p>
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center gap-5 p-5 bg-white rounded-2xl border border-surface-border shadow-soft">
+            <div className="flex items-center gap-5 p-5 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-soft">
               <div className="h-12 w-12 bg-success/10 rounded-2xl flex items-center justify-center text-success shadow-lg shadow-success/10">
                 <Wifi size={24} />
               </div>
               <div>
-                <p className="text-base font-bold text-text-primary leading-none">Academy-Mesh-01</p>
+                <p className="text-base font-bold text-gray-900 dark:text-white leading-none">Academy-Mesh-01</p>
                 <p className="text-xs text-success mt-1.5 uppercase font-bold tracking-widest">Network Securely Hooked</p>
               </div>
               <ShieldCheck className="ml-auto text-success" size={24} />
             </div>
 
-            <div className="flex items-center gap-5 p-5 bg-white rounded-2xl border border-surface-border shadow-soft">
+            <div className="flex items-center gap-5 p-5 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-soft">
               <div className="h-12 w-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-lg shadow-primary/10">
                 <Lock size={24} />
               </div>
               <div>
-                <p className="text-base font-bold text-text-primary leading-none">End-to-End Encryption</p>
+                <p className="text-base font-bold text-gray-900 dark:text-white leading-none">End-to-End Encryption</p>
                 <p className="text-xs text-primary mt-1.5 uppercase font-bold tracking-widest">Identity Tunnel Active</p>
               </div>
               <ShieldCheck className="ml-auto text-primary" size={24} />
@@ -46,7 +46,7 @@ const Scanner = () => {
         </div>
 
         <div className="relative">
-          <div className="bg-white p-10 rounded-[48px] shadow-2xl shadow-primary/10 border border-surface-border relative overflow-hidden group">
+          <div className="bg-white dark:bg-slate-800 p-10 rounded-[48px] shadow-2xl shadow-primary/10 border border-gray-200 dark:border-slate-700 relative overflow-hidden group">
             <div className="absolute top-0 right-0 h-64 w-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             
             <div className="relative aspect-square bg-[#0F172A] rounded-[36px] flex items-center justify-center overflow-hidden shadow-2xl">
@@ -58,7 +58,7 @@ const Scanner = () => {
 
                {status === 'idle' && (
                  <div className="text-center space-y-6 p-10">
-                    <div className="h-28 w-28 bg-white/5 rounded-full flex items-center justify-center mx-auto border border-white/10 group-hover:bg-white/10 transition-colors">
+                    <div className="h-28 w-28 bg-white dark:bg-slate-800/5 rounded-full flex items-center justify-center mx-auto border border-white/10 group-hover:bg-white dark:bg-slate-800/10 transition-colors">
                       <QrCode size={56} className="text-primary opacity-60" />
                     </div>
                     <button 
