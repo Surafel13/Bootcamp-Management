@@ -13,7 +13,9 @@ const MOCK_TASKS = [
     description: 'Implement a complex todo application using Redux Toolkit and Context API with proper state management patterns.',
     type: 'Both',
     instructions: 'Submit your GitHub repo and a ZIP file containing the complete project.',
-    allowedFormats: 'ZIP, PDF, GitHub Link'
+    allowedFormats: 'ZIP, PDF, GitHub Link',
+    status: 'Pending',
+    score: null
   },
   { 
     id: 2, 
@@ -23,7 +25,22 @@ const MOCK_TASKS = [
     description: 'Create a responsive dashboard layout using only CSS Grid and Flexbox.',
     type: 'File',
     instructions: 'Upload your complete project as a ZIP file.',
-    allowedFormats: 'ZIP, PDF'
+    allowedFormats: 'ZIP, PDF',
+    status: 'Graded',
+    score: 85
+  },
+  { 
+    id: 3, 
+    title: 'JavaScript Advanced Patterns', 
+    deadline: '2026-04-20', 
+    deadlineDisplay: 'Apr 20, 2026',
+    description: 'Implement Singleton, Observer, and Factory patterns in a real project.',
+    type: 'Both',
+    instructions: 'Submit GitHub repository link and a detailed PDF report.',
+    allowedFormats: 'ZIP, PDF, GitHub Link',
+    status: 'Submitted',           // ← This one is already submitted
+    score: null,
+    lastSubmitted: 'Apr 12, 2026 at 3:45 PM'
   },
 ];
 
@@ -45,8 +62,8 @@ export default function StudentTasksPage() {
   const openSubmitModal = (task) => {
     setActiveTask(task);
     setSubmission({ github: '', externalLink: '', textAnswer: '', file: null });
-    setIsSubmitted(false);
-    setLastSubmitted(null);
+    setIsSubmitted(task.status === 'Submitted');
+    setLastSubmitted(task.lastSubmitted || null);
     setShowModal(true);
   };
 
@@ -73,12 +90,13 @@ export default function StudentTasksPage() {
       return;
     }
 
-    // Simulate submission
+    // Simulate submission / update
     setIsSubmitted(true);
     setLastSubmitted(new Date().toLocaleString());
-    
+
     alert(`Successfully ${isSubmitted ? 'updated' : 'submitted'} work for: ${activeTask.title}`);
-    // In real app, you would send data to backend here
+
+    // In real app → send to backend here
   };
 
   const currentTaskDeadlinePassed = activeTask ? isDeadlinePassed(activeTask.deadline) : false;
@@ -123,8 +141,10 @@ export default function StudentTasksPage() {
                         borderRadius: 'var(--radius-full)',
                         fontSize: '0.75rem',
                         fontWeight: 700,
-                        background: task.status === 'Graded' ? 'var(--success-light)' : 'var(--primary-glow)',
-                        color: task.status === 'Graded' ? 'var(--success)' : 'var(--primary)'
+                        background: task.status === 'Graded' ? 'var(--success-light)' : 
+                                    task.status === 'Submitted' ? 'var(--primary-glow)' : 'var(--bg-hover)',
+                        color: task.status === 'Graded' ? 'var(--success)' : 
+                               task.status === 'Submitted' ? 'var(--primary)' : 'var(--text-secondary)'
                       }}>
                         {task.status}
                       </span>
@@ -139,7 +159,7 @@ export default function StudentTasksPage() {
                         onClick={() => openSubmitModal(task)}
                         disabled={deadlinePassed}
                       >
-                        {deadlinePassed ? 'Closed' : 'Submit / Update'}
+                        {deadlinePassed ? 'Closed' : task.status === 'Submitted' ? 'Update Submission' : 'Submit'}
                       </button>
                     </td>
                   </tr>
@@ -165,24 +185,14 @@ export default function StudentTasksPage() {
               </div>
 
               {currentTaskDeadlinePassed && (
-                <div style={{ 
-                  background: 'var(--danger-light)', 
-                  color: 'var(--danger)', 
-                  padding: '12px 16px', 
-                  borderRadius: 'var(--radius)', 
-                  marginBottom: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px'
-                }}>
-                  <AlertTriangle size={20} />
+                <div className="bg-[var(--danger-light)] text-[var(--danger)] p-4 rounded-xl mb-6 flex items-center gap-3">
+                  <AlertTriangle size={22} />
                   <strong>Submission closed – deadline has passed.</strong>
                 </div>
               )}
 
               <form onSubmit={handleSubmit} className="modal-form">
                 
-                {/* GitHub Link */}
                 <div className="form-group">
                   <label>GitHub Repository Link <span style={{color: 'var(--text-muted)'}}>(optional)</span></label>
                   <div className="search-box">
@@ -198,7 +208,6 @@ export default function StudentTasksPage() {
                   </div>
                 </div>
 
-                {/* External Link */}
                 <div className="form-group">
                   <label>External Resource Link <span style={{color: 'var(--text-muted)'}}>(optional)</span></label>
                   <div className="search-box">
@@ -214,7 +223,7 @@ export default function StudentTasksPage() {
                   </div>
                 </div>
 
-                {/* File Upload with Drag & Drop */}
+                {/* Drag & Drop File Upload */}
                 <div className="form-group">
                   <label>Upload File (PDF, ZIP, Images)</label>
                   <div
@@ -224,18 +233,18 @@ export default function StudentTasksPage() {
                     style={{
                       border: '2px dashed var(--border)',
                       borderRadius: 'var(--radius)',
-                      padding: '40px 20px',
+                      padding: '48px 20px',
                       textAlign: 'center',
                       background: 'var(--bg-input)',
                       cursor: currentTaskDeadlinePassed ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    <Upload size={40} color="var(--primary)" style={{ marginBottom: '12px' }} />
-                    <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <Upload size={48} color="var(--primary)" style={{ marginBottom: '16px' }} />
+                    <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
                       Drag & drop your file here
                     </p>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                      or <span style={{ color: 'var(--primary)', textDecoration: 'underline' }}>browse files</span>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                      or <span style={{ color: 'var(--primary)', textDecoration: 'underline', cursor: 'pointer' }}>browse files</span>
                     </p>
                     <input
                       type="file"
@@ -244,24 +253,24 @@ export default function StudentTasksPage() {
                       id="file-upload"
                       disabled={currentTaskDeadlinePassed}
                     />
-                    <label htmlFor="file-upload" style={{ color: 'var(--primary)', cursor: 'pointer' }}>
+                    <label htmlFor="file-upload" style={{ color: 'var(--primary)', cursor: 'pointer', fontWeight: 500 }}>
                       Choose File
                     </label>
+
                     {submission.file && (
-                      <p style={{ marginTop: '12px', color: 'var(--success)' }}>
-                        Selected: {submission.file.name}
+                      <p style={{ marginTop: '16px', color: 'var(--success)', fontWeight: 500 }}>
+                        ✓ Selected: {submission.file.name}
                       </p>
                     )}
                   </div>
                 </div>
 
-                {/* Text Answer */}
                 <div className="form-group">
                   <label>Additional Notes / Text Answer <span style={{color: 'var(--text-muted)'}}>(optional)</span></label>
                   <textarea
                     className="form-input"
                     rows="4"
-                    placeholder="Write any additional explanation or answers here..."
+                    placeholder="Write any additional explanation, challenges faced, or notes here..."
                     value={submission.textAnswer}
                     onChange={(e) => setSubmission({ ...submission, textAnswer: e.target.value })}
                     disabled={currentTaskDeadlinePassed}
@@ -282,14 +291,14 @@ export default function StudentTasksPage() {
                     disabled={currentTaskDeadlinePassed}
                     style={{ gap: 8 }}
                   >
-                    <Send size={16} />
+                    <Send size={18} />
                     {isSubmitted ? 'Update Submission' : 'Submit Assignment'}
                   </button>
                 </div>
               </form>
 
               {lastSubmitted && (
-                <p style={{ marginTop: '16px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                <p style={{ marginTop: '20px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                   Last submitted: {lastSubmitted}
                 </p>
               )}
@@ -297,15 +306,15 @@ export default function StudentTasksPage() {
 
             {/* Right Sidebar: Task Details */}
             <div style={{ 
-              width: '360px', 
+              width: '380px', 
               background: 'var(--bg-card)', 
               borderLeft: '1px solid var(--border)',
-              padding: '28px',
+              padding: '32px',
               borderRadius: '0 var(--radius-lg) var(--radius-lg) 0'
             }}>
-              <h3 style={{ color: 'var(--primary)', marginBottom: '16px' }}>{activeTask.title}</h3>
+              <h3 style={{ color: 'var(--primary)', marginBottom: '20px' }}>{activeTask.title}</h3>
               
-              <div style={{ marginBottom: '24px' }}>
+              <div style={{ marginBottom: '28px' }}>
                 <p style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Deadline</p>
                 <p style={{ 
                   color: currentTaskDeadlinePassed ? 'var(--danger)' : 'var(--text-primary)',
@@ -315,16 +324,16 @@ export default function StudentTasksPage() {
                 </p>
               </div>
 
-              <div style={{ marginBottom: '24px' }}>
+              <div style={{ marginBottom: '28px' }}>
                 <p style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>Description</p>
-                <p style={{ lineHeight: '1.5', color: 'var(--text-primary)' }}>
+                <p style={{ lineHeight: '1.6', color: 'var(--text-primary)' }}>
                   {activeTask.description}
                 </p>
               </div>
 
-              <div style={{ marginBottom: '24px' }}>
+              <div style={{ marginBottom: '28px' }}>
                 <p style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>Instructions</p>
-                <p style={{ color: 'var(--text-primary)' }}>{activeTask.instructions}</p>
+                <p style={{ color: 'var(--text-primary)', lineHeight: '1.5' }}>{activeTask.instructions}</p>
               </div>
 
               <div>

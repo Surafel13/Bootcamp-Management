@@ -1,28 +1,55 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { Link, useNavigate } from 'react-router-dom';
 import {
-  BarChart2, Eye, EyeOff, Moon, Sun, Lock, Mail
+  BarChart2, Eye, EyeOff, Lock, Mail, User
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
-export default function LoginPage() {
-  const { login } = useAuth();
+export default function SignUpPage() {
+  const { login } = useAuth(); // Assume signup might log them in or just redirect
   const { isDark, toggle } = useTheme();
+  const navigate = useNavigate();
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) { setError('Please fill in all fields.'); return; }
+    if (!fullName || !email || !password || !confirmPassword) { 
+      setError('Please fill in all fields.'); 
+      return; 
+    }
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
     setLoading(true);
     setError('');
-    await new Promise(r => setTimeout(r, 900));
+    
+    // Simulate API call
+    await new Promise(r => setTimeout(r, 1200));
+    
+    // Just mock logging them in or redirecting
     const ok = login(email, password);
-    if (!ok) setError('Invalid credentials.');
+    if (!ok) {
+      // If mock login fails, just redirect to login
+      navigate('/login');
+    }
     setLoading(false);
   };
 
@@ -46,11 +73,28 @@ export default function LoginPage() {
           <div className="login-brand-icon">
             <BarChart2 />
           </div>
-          <h1>Club Sessions</h1>
-          <p>Bootcamp Management System</p>
+          <h1>Create Account</h1>
+          <p>Sign up to get started</p>
         </div>
 
         <form className="login-form" onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Full Name</label>
+            <div className="input-wrap" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <span style={{ position: 'absolute', left: 12, color: 'var(--text-muted)', display: 'flex' }}>
+                <User size={16} />
+              </span>
+              <input
+                className="form-input"
+                style={{ paddingLeft: 36 }}
+                type="text"
+                placeholder="John Doe"
+                value={fullName}
+                onChange={e => setFullName(e.target.value)}
+              />
+            </div>
+          </div>
+
           <div className="form-group">
             <label>Email Address</label>
             <div className="input-wrap" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -61,7 +105,7 @@ export default function LoginPage() {
                 className="form-input"
                 style={{ paddingLeft: 36 }}
                 type="email"
-                placeholder="admin@bootcamp.edu"
+                placeholder="student@bootcamp.edu"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
               />
@@ -93,7 +137,30 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="login-forgot">Forgot password?</div>
+          <div className="form-group">
+            <label>Confirm Password</label>
+            <div className="input-wrap" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <span style={{ position: 'absolute', left: 12, color: 'var(--text-muted)', display: 'flex', zIndex: 1 }}>
+                <Lock size={16} />
+              </span>
+              <input
+                className="form-input"
+                style={{ paddingLeft: 36, paddingRight: 42, width: '100%' }}
+                type={showConfirmPw ? 'text' : 'password'}
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                className="eye-btn"
+                style={{ position: 'absolute', right: 12, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex' }}
+                onClick={() => setShowConfirmPw(v => !v)}
+              >
+                {showConfirmPw ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
+            </div>
+          </div>
 
           {error && (
             <div style={{
@@ -102,21 +169,22 @@ export default function LoginPage() {
               color: 'var(--danger)',
               borderRadius: 'var(--radius-sm)',
               fontSize: '0.82rem',
-              fontWeight: 500
+              fontWeight: 500,
+              marginTop: '10px'
             }}>
               {error}
             </div>
           )}
 
-          <button className="login-btn" type="submit" disabled={loading}>
-            {loading ? 'Signing in…' : 'Sign in to Dashboard'}
+          <button className="login-btn" type="submit" disabled={loading} style={{ marginTop: '20px' }}>
+            {loading ? 'Creating Account…' : 'Sign Up'}
           </button>
         </form>
 
         <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '0.875rem' }}>
-          <span style={{ color: 'var(--text-secondary)' }}>Don't have an account? </span>
-          <Link to="/signup" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'none' }}>
-            Sign up
+          <span style={{ color: 'var(--text-secondary)' }}>Already have an account? </span>
+          <Link to="/login" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'none' }}>
+            Login
           </Link>
         </div>
 

@@ -1,171 +1,228 @@
 import React from 'react';
-import { Calendar, MapPin, User, ChevronLeft, Video, Clock, Bookmark, ShieldCheck } from 'lucide-react';
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  MapPin,
+  User,
+  Video,
+  AlertCircle
+} from 'lucide-react';
 
 const SessionDetails = ({ session, onBack }) => {
-   if (!session) return null;
+  if (!session) return null;
 
-   return (
-      <div className="space-y-8 animate-fade-in pb-12">
+  const isOngoing = session.status === 'Ongoing';
+  const isUpcoming = session.status === 'Upcoming';
+  const isEnded = !isOngoing && !isUpcoming;
 
-         {/* Back Navigation */}
-         <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors border-none bg-transparent cursor-pointer"
-         >
-            <ChevronLeft size={16} /> Back to session list
-         </button>
+  return (
+    <div className="page-content" style={{ maxWidth: '1280px', margin: '0 auto' }}>
 
-         {/* Status Alert */}
-         {session.status === 'Ongoing' && (
-            <div className="bg-[var(--primary)] rounded-3xl p-8 text-white shadow-2xl shadow-[var(--primary-glow)] flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden group">
-               <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-32 -mt-32 transition-transform duration-700 group-hover:scale-110"></div>
-               <div className="flex items-center gap-6 relative z-10">
-                  <div className="h-16 w-16 bg-white/20 rounded-2xl flex items-center justify-center animate-pulse border border-white/20">
-                     <Video size={30} className="text-white" />
-                  </div>
-                  <div>
-                     <h3 className="text-xl font-black uppercase tracking-tight">Active session detected</h3>
-                     <p className="text-sm text-white/80 font-medium italic">Streaming initialized. Your presence is requested in the digital theater.</p>
-                  </div>
-               </div>
-               <div className="flex items-center gap-3 bg-red-500/20 border border-red-500/30 px-5 py-2 rounded-full backdrop-blur-md relative z-10">
-                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_#ef4444]"></div>
-                  <span className="text-[11px] font-black uppercase tracking-widest text-white">Live Broadcast</span>
-               </div>
-            </div>
-         )}
+      {/* Back Button */}
+      <button
+        onClick={onBack}
+        style={{ 
+          display: 'flex', alignItems: 'center', gap: '8px', 
+          marginBottom: '24px', fontSize: '0.875rem', fontWeight: '500',
+          color: 'var(--text-secondary)', background: 'none', border: 'none',
+          cursor: 'pointer'
+        }}
+      >
+        <ArrowLeft size={18} />
+        <span>Back to Sessions</span>
+      </button>
 
-         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="card" style={{ overflow: 'hidden', borderRadius: '24px' }}>
 
-            {/* Main Content */}
-            <div className="lg:col-span-2 space-y-8">
-               <div className="card !p-10 border-none shadow-sm bg-[var(--bg-card)]">
-                  <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-10">
-                     <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-4">
-                           <span className="badge badge-teal px-4 py-1.5 font-black text-[10px] tracking-[0.15em] uppercase border border-[var(--primary)]/10">
-                              {session.category} Dept
-                           </span>
-                           <div className="h-1 w-8 bg-[var(--border)] rounded-full hidden md:block"></div>
-                        </div>
-                        <h1 className="text-3xl font-black text-[var(--text-primary)] leading-none mb-4 uppercase tracking-tight">{session.title}</h1>
-                        <p className="text-[var(--text-secondary)] font-medium text-[15px] leading-relaxed italic border-l-4 border-[var(--primary-glow)] pl-6 py-1">
-                           {session.description || "Synthesizing theoretical constructs with practical implementation protocols. Subject matter expertise required for full transmission reception."}
-                        </p>
-                     </div>
-                     <div className="h-24 w-24 bg-[var(--bg-input)] rounded-[32px] flex items-center justify-center text-[var(--primary)] border border-[var(--border)] shrink-0 shadow-inner">
-                        <Calendar size={44} strokeWidth={1.5} />
-                     </div>
-                  </div>
+        {/* HEADER */}
+        <div style={{ padding: '36px 40px', background: 'var(--primary)', color: 'white' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-10 border-t border-[var(--border)] border-dashed">
-                     <div className="flex items-center gap-4 group">
-                        <div className="h-10 w-10 bg-[var(--bg-input)] rounded-xl flex items-center justify-center text-[var(--text-muted)] group-hover:text-[var(--primary)] transition-colors">
-                           <Clock size={20} />
-                        </div>
-                        <div>
-                           <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-0.5">Time Slot</p>
-                           <p className="text-[13px] font-bold text-[var(--text-primary)]">{session.date} • {session.time}</p>
-                        </div>
-                     </div>
-                     <div className="flex items-center gap-4 group">
-                        <div className="h-10 w-10 bg-[var(--bg-input)] rounded-xl flex items-center justify-center text-[var(--text-muted)] group-hover:text-[var(--primary)] transition-colors">
-                           <MapPin size={20} />
-                        </div>
-                        <div>
-                           <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-0.5">Terminal</p>
-                           <p className="text-[13px] font-bold text-[var(--text-primary)]">{session.location || "Central Matrix"}</p>
-                        </div>
-                     </div>
-                     <div className="flex items-center gap-4 group">
-                        <div className="h-10 w-10 bg-[var(--bg-input)] rounded-xl flex items-center justify-center text-[var(--text-muted)] group-hover:text-[var(--primary)] transition-colors">
-                           <ShieldCheck size={20} />
-                        </div>
-                        <div>
-                           <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-0.5">Authorization</p>
-                           <p className="text-[13px] font-bold text-[var(--text-primary)]">Student-Level-01</p>
-                        </div>
-                     </div>
-                  </div>
-               </div>
+            {/* Top badges */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px' }}>
+              <span style={{
+                padding: '4px 14px', fontSize: '0.75rem', fontWeight: '500', 
+                letterSpacing: '0.025em', borderRadius: '9999px',
+                background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)'
+              }}>
+                {session.category || 'Data Science'}
+              </span>
 
-               <div className="card !p-10 border-none shadow-sm bg-[var(--bg-card)]">
-                  <div className="flex items-center gap-3 mb-8">
-                     <Bookmark size={20} className="text-[var(--primary)]" />
-                     <h3 className="text-sm font-black text-[var(--text-primary)] uppercase tracking-widest">Protocol Instructions</h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-[13px]">
-                     <div className="space-y-4">
-                        <div className="flex gap-4">
-                           <span className="h-5 w-5 bg-[var(--primary-soft)] text-[var(--primary)] flex items-center justify-center rounded text-[10px] font-black shrink-0">01</span>
-                           <p className="text-[var(--text-secondary)] font-medium italic">Initialize neural connection 10 minutes prior to transmission launch.</p>
-                        </div>
-                        <div className="flex gap-4">
-                           <span className="h-5 w-5 bg-[var(--primary-soft)] text-[var(--primary)] flex items-center justify-center rounded text-[10px] font-black shrink-0">02</span>
-                           <p className="text-[var(--text-secondary)] font-medium italic">Maintain audio silence protocol unless manual override is requested.</p>
-                        </div>
-                     </div>
-                     <div className="space-y-4">
-                        <div className="flex gap-4">
-                           <span className="h-5 w-5 bg-[var(--primary-soft)] text-[var(--primary)] flex items-center justify-center rounded text-[10px] font-black shrink-0">03</span>
-                           <p className="text-[var(--text-secondary)] font-medium italic">Ensure compiler environments are primed and assets are mounted.</p>
-                        </div>
-                        <div className="flex gap-4">
-                           <span className="h-5 w-5 bg-[var(--primary-soft)] text-[var(--primary)] flex items-center justify-center rounded text-[10px] font-black shrink-0">04</span>
-                           <p className="text-[var(--text-secondary)] font-medium italic">Packet loss over 5% requires immediate network recalibration.</p>
-                        </div>
-                     </div>
-                  </div>
-               </div>
+              <span style={{
+                padding: '4px 14px', fontSize: '0.75rem', fontWeight: '600', 
+                borderRadius: '9999px', border: '1px solid',
+                background: isOngoing ? 'rgba(239, 68, 68, 0.2)' : isUpcoming ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255,255,255,0.1)',
+                color: isOngoing ? '#fca5a5' : isUpcoming ? '#fde68a' : '#e5e7eb',
+                borderColor: isOngoing ? 'rgba(239, 68, 68, 0.5)' : isUpcoming ? 'rgba(245, 158, 11, 0.5)' : 'rgba(255,255,255,0.2)'
+              }}>
+                {isOngoing ? '● Live Now' : session.status || 'Upcoming'}
+              </span>
             </div>
 
-            {/* Action Sidebar */}
-            <div className="space-y-8">
-               <div className="card !p-8 bg-[var(--bg-card)] border-none shadow-sm relative overflow-hidden">
-                  <div className="absolute top-0 right-0 h-1.5 w-full bg-[var(--primary)]"></div>
-                  <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-6 border-b border-[var(--border)] border-dashed pb-4 text-center">Faculty Dispatch</p>
-                  <div className="flex items-center gap-5 mb-8">
-                     <div className="h-16 w-16 rounded-3xl bg-[var(--bg-input)] border border-[var(--border)] flex items-center justify-center text-[var(--text-muted)] shrink-0 overflow-hidden shadow-sm">
-                        <User size={36} strokeWidth={1} />
-                     </div>
-                     <div className="min-w-0">
-                        <p className="font-black text-[var(--text-primary)] text-base truncate leading-none mb-1 uppercase tracking-tight">{session.instructor || "Lead Architect"}</p>
-                        <div className="flex items-center gap-2">
-                           <div className="w-1.5 h-1.5 rounded-full bg-[var(--success)]"></div>
-                           <p className="text-[11px] text-[var(--text-muted)] font-black uppercase tracking-wider">Faculty Elite</p>
-                        </div>
-                     </div>
-                  </div>
-                  <button className="w-full btn-secondary text-[11px] py-4 rounded-2xl hover:bg-[var(--primary-soft)] hover:text-[var(--primary)] uppercase tracking-widest font-black transition-all">Direct Comm Link</button>
-               </div>
+            {/* Title */}
+            <h1 style={{ fontSize: '2rem', fontWeight: '700', lineHeight: '1.3', margin: 0 }}>
+              {session.title}
+            </h1>
 
-               <div className="card !p-8 bg-[var(--bg-card)] border-none shadow-sm flex flex-col items-center text-center">
-                  <div className={`mb-8 w-full py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-sm ${session.status === 'Ongoing' ? 'bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20 shadow-[0_0_15px_var(--primary-glow)]' :
-                        session.status === 'Upcoming' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' :
-                           'bg-[var(--bg-input)] text-[var(--text-muted)]'
-                     }`}>
-                     SYSTEM STATUS: {session.status || 'IDLE'}
-                  </div>
+            {/* Meta Info */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <User size={16} />
+                <span>{session.instructor || 'Lead Instructor'}</span>
+              </div>
 
-                  <button
-                     disabled={session.status !== 'Ongoing'}
-                     className={`w-full py-5 rounded-3xl font-black text-[11px] uppercase tracking-[0.2em] transition-all duration-500 flex justify-center items-center gap-3 border-none cursor-pointer ${session.status === 'Ongoing'
-                           ? 'bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white shadow-xl shadow-[var(--primary-glow)] hover:scale-[1.03] active:scale-95'
-                           : 'bg-[var(--bg-input)] text-[var(--text-muted)] cursor-not-allowed border border-[var(--border)]'
-                        }`}
-                  >
-                     <Video size={18} /> Join Broadcast
-                  </button>
-                  {session.status !== 'Ongoing' && (
-                     <p className="text-[11px] text-[var(--text-muted)] mt-6 font-bold uppercase tracking-wider italic">Matrix entry locked until transmission</p>
-                  )}
-               </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Calendar size={16} />
+                <span>{session.date}</span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Clock size={16} />
+                <span>{session.time}</span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <MapPin size={16} />
+                <span>{session.location || 'Virtual Room'}</span>
+              </div>
             </div>
 
-         </div>
+          </div>
+        </div>
+
+        {/* BODY */}
+        <div style={{ 
+          padding: '36px 40px', 
+          display: 'flex', 
+          flexWrap: 'wrap',
+          gap: '32px',
+          alignItems: 'flex-start'
+        }}>
+
+          {/* LEFT (Content) */}
+          <div style={{ flex: '2 1 600px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+
+            {/* Description */}
+            <div className="card" style={{ padding: '28px', borderRadius: '16px' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: '600', marginBottom: '12px', color: 'var(--text-primary)' }}>
+                Description
+              </h3>
+              <p style={{ fontSize: '0.9rem', lineHeight: '1.6', color: 'var(--text-secondary)' }}>
+                {session.description ||
+                  "Utilize Pandas, NumPy, and Matplotlib to analyze and visualize datasets. Learn data cleaning, exploration, and visualization techniques."}
+              </p>
+            </div>
+
+            {/* Guidelines */}
+            <div className="card" style={{ padding: '28px', borderRadius: '16px' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: '600', marginBottom: '20px', color: 'var(--text-primary)' }}>
+                Session Guidelines
+              </h3>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {[
+                  "Join 5–10 minutes early for setup.",
+                  "Keep your microphone muted unless speaking.",
+                  "Prepare questions in advance.",
+                  "Use chat for support or questions."
+                ].map((item, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    <span style={{
+                      fontSize: '0.75rem', fontWeight: '600', color: 'var(--primary)', 
+                      backgroundColor: 'var(--primary-glow)', padding: '4px 8px', borderRadius: '6px'
+                    }}>
+                      {i + 1}
+                    </span>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      {item}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+
+          {/* RIGHT (Action Panel) */}
+          <div style={{ flex: '1 1 300px', position: 'sticky', top: '24px' }}>
+            <div className="card" style={{ padding: '28px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+              {/* Status Indicator */}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '8px', 
+                  padding: '8px 16px', borderRadius: '9999px', fontSize: '0.875rem', fontWeight: '600',
+                  color: isOngoing ? 'var(--primary)' : isUpcoming ? '#d97706' : 'var(--text-secondary)',
+                  backgroundColor: isOngoing ? 'var(--primary-glow)' : isUpcoming ? '#fef3c7' : 'var(--bg-hover)'
+                }}>
+                  {isOngoing ? 'Live Now' : session.status || 'Upcoming'}
+                </div>
+              </div>
+
+              {/* ACTION */}
+              {isOngoing && (
+                <button className="btn btn-primary" style={{ width: '100%', padding: '14px', display: 'flex', justifyContent: 'center', gap: '8px', fontSize: '0.95rem' }}>
+                  <Video size={20} />
+                  Join Session
+                </button>
+              )}
+
+              {isUpcoming && (
+                <div style={{
+                  borderRadius: '12px', border: '1px solid #fde68a', backgroundColor: '#fffbeb', 
+                  padding: '24px', textAlign: 'center'
+                }}>
+                  <AlertCircle size={28} color="#f59e0b" style={{ margin: '0 auto 8px' }} />
+                  <p style={{ fontSize: '0.9rem', fontWeight: '600', color: '#b45309' }}>
+                    Session not started yet
+                  </p>
+                  <p style={{ fontSize: '0.8rem', color: '#d97706', marginTop: '6px' }}>
+                    Join 10 minutes before start time
+                  </p>
+                </div>
+              )}
+
+              {isEnded && (
+                <div style={{
+                  borderRadius: '12px', border: '1px solid var(--border)', backgroundColor: 'var(--bg-hover)', 
+                  padding: '24px', textAlign: 'center'
+                }}>
+                  <AlertCircle size={28} color="var(--text-muted)" style={{ margin: '0 auto 8px' }} />
+                  <p style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                    Session has ended
+                  </p>
+                </div>
+              )}
+
+              {/* Divider & Quick Info */}
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '0.875rem' }}>
+                <h4 style={{ fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>Quick Info</h4>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Duration</span>
+                  <span style={{ fontWeight: '500', color: 'var(--text-primary)' }}>2h</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Platform</span>
+                  <span style={{ fontWeight: '500', color: 'var(--text-primary)' }}>Virtual</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Capacity</span>
+                  <span style={{ fontWeight: '500', color: 'var(--text-primary)' }}>50</span>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+
+        </div>
       </div>
-   );
+    </div>
+  );
 };
 
 export default SessionDetails;
-

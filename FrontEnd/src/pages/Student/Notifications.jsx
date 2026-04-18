@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Bell, Check, Clock, Calendar, AlertCircle, Award, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Bell, Check, Clock, Calendar, AlertCircle, Award, PlayCircle } from 'lucide-react';
 
 const NOTIFICATIONS = [
   {
@@ -17,6 +18,26 @@ const NOTIFICATIONS = [
     time: '5 hours ago',
     read: false,
     type: 'session'
+  },
+  {
+    id: 6,
+    type: 'bootcamp',
+    title: 'Full-Stack Web Development Bootcamp',
+    message: 'Master modern web development with React, Node.js, MongoDB & more. 12-week intensive program.',
+    time: '2 hours ago',
+    read: false,
+    bootcampId: 101,
+    isNew: true
+  },
+  {
+    id: 7,
+    type: 'bootcamp',
+    title: 'Advanced AI & Machine Learning',
+    message: 'Deep dive into Neural Networks, NLP and Large Language Models. Join our waitlist now.',
+    time: '5 hours ago',
+    read: false,
+    bootcampId: 102,
+    isNew: false
   },
   {
     id: 3,
@@ -45,9 +66,9 @@ const NOTIFICATIONS = [
 ];
 
 export default function Notifications() {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState(NOTIFICATIONS);
-  const [filter, setFilter] = useState('All'); // All, Unread
-
+  const [filter, setFilter] = useState('All');
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const filteredNotifications = notifications
@@ -63,8 +84,9 @@ export default function Notifications() {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  const getTypeIcon = (type) => {
-    switch (type) {
+  const getTypeIcon = (notification) => {
+    if (notification.type === 'bootcamp') return <PlayCircle size={22} />;
+    switch (notification.type) {
       case 'task': return <Clock size={20} />;
       case 'session': return <Calendar size={20} />;
       case 'feedback': return <Bell size={20} />;
@@ -74,8 +96,9 @@ export default function Notifications() {
     }
   };
 
-  const getTypeColor = (type) => {
-    switch (type) {
+  const getTypeColor = (notification) => {
+    if (notification.type === 'bootcamp') return 'var(--primary)';
+    switch (notification.type) {
       case 'task': return 'var(--primary)';
       case 'session': return 'var(--warning)';
       case 'feedback': return 'var(--info)';
@@ -85,6 +108,14 @@ export default function Notifications() {
     }
   };
 
+  const handleViewDetails = (bootcampId) => {
+    navigate(`/bootcamp-detail/${bootcampId}`);
+  };
+
+  const handleEnrollNow = (bootcampId) => {
+    alert(`Enrolling in bootcamp #${bootcampId}...`);
+  };
+
   return (
     <div className="page-content">
       <div className="page-header">
@@ -92,12 +123,11 @@ export default function Notifications() {
           <Bell size={28} color="var(--primary)" />
           <div>
             <h1>Notifications</h1>
-            <p>Stay updated with important announcements and reminders</p>
+            <p>Stay updated with important announcements and opportunities</p>
           </div>
         </div>
       </div>
 
-      {/* Header Actions */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -110,32 +140,25 @@ export default function Notifications() {
           <button
             onClick={() => setFilter('All')}
             className={`btn ${filter === 'All' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ padding: '10px 20px' }}
           >
             All ({notifications.length})
           </button>
           <button
             onClick={() => setFilter('Unread')}
             className={`btn ${filter === 'Unread' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ padding: '10px 20px' }}
           >
             Unread ({unreadCount})
           </button>
         </div>
 
         {unreadCount > 0 && (
-          <button 
-            onClick={markAllAsRead}
-            className="btn btn-secondary"
-            style={{ padding: '10px 20px' }}
-          >
+          <button onClick={markAllAsRead} className="btn btn-secondary">
             Mark All as Read
           </button>
         )}
       </div>
 
-      {/* Notifications List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {filteredNotifications.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', padding: '80px 20px' }}>
             <Bell size={48} color="var(--text-muted)" style={{ marginBottom: '16px' }} />
@@ -148,79 +171,93 @@ export default function Notifications() {
               key={notification.id}
               className="card"
               style={{
-                padding: '20px',
-                borderLeft: notification.read ? 'none' : `4px solid ${getTypeColor(notification.type)}`,
-                background: notification.read ? 'var(--bg-card)' : 'var(--bg-active)',
-                transition: 'var(--transition)',
+                padding: '24px',
+                position: 'relative',
+                borderLeft: notification.read ? 'none' : `5px solid ${getTypeColor(notification)}`,
+                background: notification.read 
+                  ? 'var(--bg-card)' 
+                  : notification.type === 'bootcamp' 
+                    ? 'var(--primary-light)' 
+                    : 'var(--bg-active)',
               }}
             >
-              <div style={{ display: 'flex', gap: '16px' }}>
-                {/* Icon */}
+              {notification.type === 'bootcamp' && notification.isNew && (
                 <div style={{
-                  height: '48px',
-                  width: '48px',
-                  borderRadius: '12px',
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  background: 'var(--primary)',
+                  color: 'white',
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  padding: '4px 10px',
+                  borderRadius: '9999px'
+                }}>
+                  NEW
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '18px' }}>
+                <div style={{
+                  height: '52px',
+                  width: '52px',
+                  borderRadius: '14px',
                   background: notification.read ? 'var(--bg-hover)' : 'var(--primary-light)',
-                  color: notification.read ? 'var(--text-muted)' : getTypeColor(notification.type),
+                  color: notification.read ? 'var(--text-muted)' : getTypeColor(notification),
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0
                 }}>
-                  {getTypeIcon(notification.type)}
+                  {getTypeIcon(notification)}
                 </div>
 
-                {/* Content */}
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <h4 style={{ 
-                      fontWeight: 600, 
-                      fontSize: '1.02rem',
-                      color: 'var(--text-primary)',
-                      marginBottom: '6px'
-                    }}>
-                      {notification.title}
-                    </h4>
-                    
-                    {!notification.read && (
-                      <div 
-                        style={{ 
-                          width: '9px', 
-                          height: '9px', 
-                          background: 'var(--primary)', 
-                          borderRadius: '50%',
-                          marginTop: '6px'
-                        }} 
-                      />
-                    )}
-                  </div>
+                  <h4 style={{ 
+                    fontWeight: notification.type === 'bootcamp' ? 700 : 600,
+                    fontSize: '1.08rem',
+                    marginBottom: '8px'
+                  }}>
+                    {notification.title}
+                  </h4>
 
                   <p style={{ 
                     color: 'var(--text-secondary)', 
-                    lineHeight: '1.5',
-                    marginBottom: '10px'
+                    lineHeight: '1.55',
+                    marginBottom: '12px'
                   }}>
                     {notification.message}
                   </p>
 
-                  <p style={{ 
-                    fontSize: '0.82rem', 
-                    color: 'var(--text-muted)' 
-                  }}>
+                  <p style={{ fontSize: '0.83rem', color: 'var(--text-muted)' }}>
                     {notification.time}
                   </p>
+
+                  {notification.type === 'bootcamp' && (
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => handleEnrollNow(notification.bootcampId)}
+                        className="btn btn-primary"
+                        style={{ padding: '10px 24px' }}
+                      >
+                        Enroll Now
+                      </button>
+                      <button
+                        onClick={() => handleViewDetails(notification.bootcampId)}
+                        className="btn btn-secondary"
+                        style={{ padding: '10px 24px' }}
+                      >
+                        View Details
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                {/* Mark as Read Button */}
                 {!notification.read && (
                   <button
                     onClick={() => markAsRead(notification.id)}
                     className="btn btn-secondary"
-                    style={{ 
-                      padding: '8px 12px', 
-                      alignSelf: 'flex-start',
-                      height: 'fit-content'
-                    }}
+                    style={{ padding: '8px 12px', height: 'fit-content', alignSelf: 'flex-start' }}
                     title="Mark as read"
                   >
                     <Check size={18} />

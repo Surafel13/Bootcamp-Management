@@ -50,7 +50,7 @@ export default function NotificationsPage() {
         </div>
 
         <div className="notif-list">
-          {NOTIFICATIONS.map(({ id, type, unread, title, body, time, icon: Icon }) => (
+          {/* {NOTIFICATIONS.map(({ id, type, unread, title, body, time, icon: Icon }) => (
             <div key={id} className={`notif-item ${unread ? 'unread' : ''}`}>
               <div className={`notif-icon ${type}`}>
                 <Icon size={17} />
@@ -61,7 +61,7 @@ export default function NotificationsPage() {
               </div>
               <div className="notif-time">{time}</div>
             </div>
-          ))}
+          ))} */}
         </div>
       </div>
     </div>

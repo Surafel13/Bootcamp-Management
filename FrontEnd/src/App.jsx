@@ -1,9 +1,11 @@
 import './index.css';
-import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 import LoginPage from './pages/LoginPage.jsx';
+import SignUpPage from './pages/SignUpPage.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import Topbar from './components/Topbar.jsx';
 
@@ -62,7 +64,15 @@ function SuperAdminDashboard() {
 function AppInner() {
   const { user, role } = useAuth();
 
-  if (!user) return <LoginPage />;
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
 
   if (role === 'Instructor') {
     return <InstructorDashboard />;
@@ -72,7 +82,6 @@ function AppInner() {
     return <StudentDashboard />;
   }
 
-  // Super Admin is the default for any other authenticated state
   return <SuperAdminDashboard />;
 }
 
@@ -80,7 +89,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppInner />
+        <Router>        {/* ← This fixes the useNavigate error */}
+          <AppInner />
+        </Router>
       </AuthProvider>
     </ThemeProvider>
   );
