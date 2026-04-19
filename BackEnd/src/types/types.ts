@@ -140,3 +140,10 @@ export interface IProgress extends Document {
 	year: number;
 	createdAt: Date;
 }
+
+export interface IAnnouncement extends Document {
+	title: string;
+	content: string;
+	createdBy: Types.ObjectId | IUser;
+	createdAt: Date;
+}

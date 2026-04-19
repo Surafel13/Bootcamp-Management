@@ -19,6 +19,7 @@ import groupRoutes from "./routes/group.routes.js";
 import progressRoutes from "./routes/progress.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import reportRoutes from "./routes/report.routes.js";
+import announcementRoutes from "./routes/announcement.routes.js";
 
 import { validateEnv } from "./utils/validateEnv.js";
 import logger from "./utils/logger.js";
@@ -62,6 +63,7 @@ app.use("/api/groups", groupRoutes);
 app.use("/api/progress", progressRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/v1/announcements", announcementRoutes);
 
 // Error Handler
 app.use(errorHandler);
