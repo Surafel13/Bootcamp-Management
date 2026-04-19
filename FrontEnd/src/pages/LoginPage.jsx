@@ -113,13 +113,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '0.875rem' }}>
-          <span style={{ color: 'var(--text-secondary)' }}>Don't have an account? </span>
-          <Link to="/signup" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'none' }}>
-            Sign up
-          </Link>
-        </div>
-
         <div className="login-footer">
           © 2025 Club Sessions BMS · All rights reserved
         </div>

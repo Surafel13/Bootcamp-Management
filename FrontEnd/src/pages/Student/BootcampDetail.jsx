@@ -14,7 +14,6 @@ const bootcamps = {
     seats: 28,
     enrolled: 12,
     instructor: "Abebe Kebede",
-    price: "Free for eligible students",
     description: `
       Become a job-ready full-stack developer in just 12 weeks. 
       This intensive bootcamp covers everything from modern frontend to scalable backend development.
@@ -46,7 +45,6 @@ const bootcamps = {
     seats: 20,
     enrolled: 20,
     instructor: "Dr. Selamawit T.",
-    price: "$500 USD",
     description: `
       Dive deep into the world of Artificial Intelligence. This course covers everything from basic statistics to advanced neural networks and LLMs.
     `,
