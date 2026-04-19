@@ -74,3 +74,24 @@ export const trackDownload = catchAsync(
 		});
 	},
 );
+
+// Increment download count for a resource
+export const trackResourceDownload = catchAsync(
+	async (req: Request, res: Response, next: NextFunction) => {
+		const resource = await Resource.findByIdAndUpdate(
+			req.params.id,
+			{ $inc: { downloads: 1 } },
+			{ new: true, runValidators: true },
+		);
+
+		if (!resource) {
+			return next(new AppError("Resource not found", 404, { id: "Not found" }));
+		}
+
+		res.status(200).json({
+			status: "success",
+			message: "Download tracked successfully",
+			data: { resource },
+		});
+	},
+);

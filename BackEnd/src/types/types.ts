@@ -13,6 +13,7 @@ export interface IUser extends Document {
 	email: string;
 	password: string;
 	role: "super_admin" | "division_admin" | "student";
+	// Explicitly redefine the property to ensure recognition
 	divisions: Types.ObjectId[];
 	status: "active" | "suspended" | "graduated";
 	passwordResetToken?: string;
@@ -90,9 +91,10 @@ export interface IAttendance extends Document {
 export interface IAuditLog extends Document {
 	user: Types.ObjectId | IUser;
 	action: string;
-	entity: string;
+	entityType?: string;
+	entityId?: string;
 	path: string;
-	entityId: Types.ObjectId | null;
+	metadata?: Record<string, any>;
 	timestamp: Date;
 }
 

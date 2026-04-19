@@ -11,6 +11,8 @@ import crypto from "crypto";
 import env from "../config/env.js";
 import type { ISession } from "../types/types.js";
 import { Types } from "mongoose";
+import type { IUser } from "../types/types.js";
+import mongoose from "mongoose";
 
 interface TokenPayload extends jwt.JwtPayload {
 	sessionId: Types.ObjectId;
@@ -22,14 +24,14 @@ const activeTokens = new Map<string, boolean>();
 
 export const createSession = catchAsync(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const { division, startTime, endTime, instructor } = req.body;
+		const { division, startTime: rawStartTime, endTime: rawEndTime, instructor } = req.body;
 
-		const start = new Date(startTime);
-		const end = new Date(endTime);
+		const startTime = new Date(rawStartTime);
+		const endTime = new Date(rawEndTime);
 		const now = new Date();
 
 		// 1. Must be at least 1 hour in advance
-		if (start.getTime() - now.getTime() < 60 * 60 * 1000) {
+		if (startTime.getTime() - now.getTime() < 60 * 60 * 1000) {
 			return next(
 				new AppError("Sessions must be scheduled at least 1 hour in advance", 422, {
 					startTime: "Too soon",
@@ -38,7 +40,7 @@ export const createSession = catchAsync(
 		}
 
 		// 2. Minimum duration: 30 minutes
-		const duration = (end.getTime() - start.getTime()) / (1000 * 60);
+		const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
 		if (duration < 30) {
 			return next(
 				new AppError("Session must be at least 30 minutes long", 400, {
@@ -47,64 +49,82 @@ export const createSession = catchAsync(
 			);
 		}
 
-		// 3. No overlapping sessions in same division
-		const divisionOverlap = await Session.findOne({
+		// 3. No overlapping sessions in the same division
+		const overlappingDivisionSession = await Session.findOne({
 			division,
-			status: "active",
-			$or: [{ startTime: { $lt: end }, endTime: { $gt: start } }],
+			$or: [
+				{ startTime: { $lt: endTime }, endTime: { $gt: startTime } },
+				{ startTime: { $gte: startTime, $lt: endTime } },
+				{ endTime: { $gt: startTime, $lte: endTime } },
+			],
 		});
-		if (divisionOverlap)
+		if (overlappingDivisionSession) {
 			return next(
-				new AppError("A session already exists in this time slot for this division", 409, {
-					schedule: "Division overlap",
+				new AppError("Overlapping session in the same division", 422, {
+					session: "Conflict with another session",
 				}),
 			);
+		}
 
-		// 4. Instructor cannot be double-booked
-		if (instructor) {
-			const instructorOverlap = await Session.findOne({
-				instructor,
-				status: "active",
-				$or: [{ startTime: { $lt: end }, endTime: { $gt: start } }],
-			});
-			if (instructorOverlap)
-				return next(
-					new AppError("Instructor already has a session in this time slot", 409, {
-						instructor: "Double-booking detected",
-					}),
-				);
+		// 4. No double-booking of instructors
+		const overlappingInstructorSession = await Session.findOne({
+			instructor,
+			$or: [
+				{ startTime: { $lt: endTime }, endTime: { $gt: startTime } },
+				{ startTime: { $gte: startTime, $lt: endTime } },
+				{ endTime: { $gt: startTime, $lte: endTime } },
+			],
+		});
+		if (overlappingInstructorSession) {
+			return next(
+				new AppError("Instructor is already booked for another session", 422, {
+					instructor: "Double-booking detected",
+				}),
+			);
 		}
 
 		const session = await Session.create(req.body);
 
 		// Notify students in the division
-		const students = await User.find({ role: "student", divisions: division, status: "active" });
+		const students = await User.find({
+			role: "student",
+			divisions: { $in: division.map((div: string) => new mongoose.Types.ObjectId(div)) },
+			status: "active",
+		});
+
 		for (const student of students) {
 			await Notification.create({
 				user: student._id,
-				message: `New session scheduled: "${session.title}" on ${start.toLocaleDateString()}`,
+				message: `New session scheduled: "${session.title}" on ${startTime.toLocaleDateString()}`,
 				type: "session",
 			});
 			sendEmail(
 				student.email,
 				`New Session: ${session.title}`,
-				`Hello ${student.name},\n\nA new session has been scheduled:\n\nTitle: ${session.title}\nDate: ${start.toLocaleString()}\nLocation: ${session.location || session.onlineLink || "TBD"}`,
+				`Hello ${student.name},\n\nA new session has been scheduled:\n\nTitle: ${session.title}\nDate: ${startTime.toLocaleString()}\nLocation: ${session.location || session.onlineLink || "TBD"}`,
 			).catch(() => {});
 		}
 
-		res.status(201).json({ status: "success", data: { session } });
+		res.status(201).json({
+			message: `New session scheduled: "${session.title}" on ${startTime.toLocaleDateString()}`,
+		});
 	},
 );
 
-export const getAllSessions = catchAsync(async (req: Request, res: Response) => {
+export const getAllSessions = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 	const { division, status, from, to } = req.query;
 	const filter: Record<string, any> = {};
 
 	// Students can only see their own divisions' sessions
 	if (req.user!.role === "student") {
-		filter.division = { $in: req.user!.divisions };
+		const user = req.user as IUser;
+		if (!user.divisions) {
+			return next(new AppError("User divisions not found", 400));
+		}
+
+		filter.division = { $in: user.divisions.map((div) => new mongoose.Types.ObjectId(div)) };
 	} else if (division) {
-		filter.division = division;
+		filter.division = { $in: (division as string[]).map((div) => new mongoose.Types.ObjectId(div)) };
 	}
 
 	if (status) filter.status = status;
@@ -187,10 +207,20 @@ export const cancelSession = catchAsync(
 		if (!session)
 			return next(new AppError("Session not found", 404, { id: "Not found" }));
 
+		// Ensure division is an ObjectId
+		let divisionId: mongoose.Types.ObjectId;
+		if (session.division instanceof mongoose.Types.ObjectId) {
+			divisionId = session.division;
+		} else if (typeof session.division === "string") {
+			divisionId = new mongoose.Types.ObjectId(session.division);
+		} else {
+			return next(new AppError("Invalid division ID", 400));
+		}
+
 		// Notify all students in division – urgent
 		const students = await User.find({
 			role: "student",
-			divisions: session.division,
+			divisions: { $in: [divisionId] },
 			status: "active",
 		});
 

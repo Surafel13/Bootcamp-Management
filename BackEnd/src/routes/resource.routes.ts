@@ -4,7 +4,7 @@ import {
     getAllResources, 
     getResourceById, 
     deleteResource, 
-    trackDownload 
+    trackResourceDownload 
 } from "../controllers/resource.controller.js";
 import { protect, restrictTo } from "../middlewares/auth.middleware.js";
 
@@ -14,7 +14,7 @@ router.use(protect);
 
 router.get("/", getAllResources);
 router.get("/:id", getResourceById);
-router.post("/:id/download", trackDownload);
+router.post("/:id/download", trackResourceDownload);
 
 // Instructors and Admins can manage resources
 router.use(restrictTo("division_admin", "super_admin"));

@@ -41,6 +41,7 @@ export const submitProgress = catchAsync(
 
 		const { week: weekNumber, year } = getISOWeek(new Date());
 
+		// Save progress submission
 		const progress = await Progress.create({
 			group: groupId,
 			submittedBy: req.user!._id,
@@ -52,7 +53,28 @@ export const submitProgress = catchAsync(
 			year,
 		});
 
-		res.status(201).json({ status: "success", data: { progress } });
+		res.status(201).json({
+			status: "success",
+			message: "Progress submitted successfully",
+			progress,
+		});
+	},
+);
+
+// Fetch progress submissions for a group
+export const getGroupProgress = catchAsync(
+	async (req: Request, res: Response, next: NextFunction) => {
+		const { groupId } = req.params;
+
+		const progress = await Progress.find({ group: groupId });
+		if (!progress.length) {
+			return next(new AppError("No progress submissions found for this group", 404));
+		}
+
+		res.status(200).json({
+			status: "success",
+			progress,
+		});
 	},
 );
 

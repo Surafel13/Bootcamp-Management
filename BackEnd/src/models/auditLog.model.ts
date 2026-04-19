@@ -6,8 +6,10 @@ const auditLogSchema = new mongoose.Schema<IAuditLog>({
   action: String, // e.g., "POST", "PATCH", "DELETE"
   entity: String, // e.g., "Task", "Session"
   entityId: String,
+  entityType: { type: String },
   path: String,
-  timestamp: { type: Date, default: Date.now }
+  timestamp: { type: Date, default: Date.now },
+  metadata: { type: mongoose.Schema.Types.Mixed }
 });
 
 const AuditLog = mongoose.model<IAuditLog>('AuditLog', auditLogSchema);
