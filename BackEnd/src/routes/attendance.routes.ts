@@ -1,29 +1,37 @@
 import { Router } from "express";
 import { protect, restrictTo } from "../middlewares/auth.middleware.js";
 import { checkIPRange } from "../middlewares/ip.middleware.js";
-import {
-  scanQR,
-  generateQR,
-  getSessionAttendance,
-  getStudentAttendance,
-  manualUpdate
+import { 
+    scanQR, 
+    manualUpdate, 
+    getAllAttendance, 
+    getAttendanceBySession, 
+    getMyAttendance,
+    markManual
 } from "../controllers/attendance.controller.js";
 
 const router: Router = Router();
 
-// QR Generator - Open or Admin protected, let's protect it
-router.post("/qr/generate/:sessionId", protect, restrictTo("division_admin", "super_admin"), generateQR);
+router.use(protect);
 
-// QR Scanning (Student)
-router.post("/qr/scan", protect, restrictTo("student"), checkIPRange, scanQR);
+// Student scans QR - IP range check required by SRS
+router.post("/scan", restrictTo("student"), checkIPRange, scanQR);
 
-// Get Session Attendance
-router.get("/session/:sessionId", protect, getSessionAttendance);
+// Admin/Instructor listing
+router.get("/", restrictTo("division_admin", "super_admin"), getAllAttendance);
+router.get("/session/:sessionId", restrictTo("division_admin", "super_admin"), getAttendanceBySession);
 
-// Get Student Attendance
-router.get("/student/:studentId", protect, getStudentAttendance);
+// Self history
+router.get("/me", restrictTo("student"), getMyAttendance);
 
-// Manual Update (Admin)
-router.patch("/manual/:id", protect, restrictTo("division_admin", "super_admin"), manualUpdate);
+// Manual mark (Create/Update)
+router.post("/mark", restrictTo("division_admin", "super_admin"), markManual);
+
+// Manual update (Specific record)
+router.patch(
+  "/manual/:id",
+  restrictTo("division_admin", "super_admin"),
+  manualUpdate,
+);
 
 export default router;

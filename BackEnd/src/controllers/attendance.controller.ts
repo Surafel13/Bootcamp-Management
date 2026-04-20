@@ -81,8 +81,9 @@ export const scanQR = catchAsync(
 			const student = await User.findById(studentId);
 			if (!student) return next(new AppError("Student not found", 404));
 
-			if (!student.divisions.some(div => div.toString() === session.division.toString())) {
-				return next(new AppError("Unauthorized student. Not registered in this session's division.", 403));
+			// Corrected property name from `divisons` to `divisions` to match the schema definition
+			if (!student.divisions?.some((div: Types.ObjectId) => div.toString() === session.division.toString())) {
+				return next(new AppError("Student does not belong to this division", 403));
 			}
 
 			// 6. Student must not already be marked present
@@ -95,11 +96,17 @@ export const scanQR = catchAsync(
 				return next(new AppError("Already marked attendance", 400));
 			}
 
-			// 7. Create Attendance
+			// 7. Calculate status (Late if >10 minutes after session start)
+			const sessionStart = new Date(session.startTime).getTime();
+			const now = new Date().getTime();
+			const diffInMinutes = (now - sessionStart) / (1000 * 60);
+			const status = diffInMinutes > 10 ? "late" : "present";
+
+			// 8. Create Attendance
 			await Attendance.create({
 				student: new Types.ObjectId(studentId),
 				session: new Types.ObjectId(decoded.sessionId),
-				status: "attend",
+				status,
 				markedAt: new Date()
 			});
 
@@ -123,7 +130,17 @@ export const getSessionAttendance = catchAsync(
 
 export const getStudentAttendance = catchAsync(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const records = await Attendance.find({ student: req.params.studentId }).populate("session", "startTime endTime");
+		// Correct the type for `student` in the query
+		const records = await Attendance.find({
+			student: new Types.ObjectId(req.params.studentId as string),
+		}).populate("session", "startTime endTime");
+
+		// Ensure `req.user.id` is properly typed
+		if (!req.user || !req.user._id) {
+			throw new AppError("User not authenticated", 401);
+		}
+		const studentId = req.user._id;
+
 		res.status(200).json({ status: "success", data: records });
 	}
 );
@@ -162,3 +179,85 @@ export const manualUpdate = catchAsync(
 		res.status(200).json({ status: "success", data: attendance });
 	},
 );
+
+// Fetch all attendance records for admins/instructors
+export const getAllAttendance = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const attendanceRecords = await Attendance.find();
+    res.status(200).json({
+        status: "success",
+        data: attendanceRecords,
+    });
+});
+
+// Fetch attendance for a specific session
+export const getAttendanceBySession = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const { sessionId } = req.params;
+    const attendanceRecords = await Attendance.find({ session: sessionId });
+
+    if (!attendanceRecords.length) {
+        return next(new AppError("No attendance records found for this session", 404));
+    }
+
+    res.status(200).json({
+        status: "success",
+        data: attendanceRecords,
+    });
+});
+
+// Fetch attendance history for the logged-in student
+export const getMyAttendance = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    // Ensure req.user is defined and has an id property
+    if (!req.user || !req.user._id) {
+        return next(new AppError("User not authenticated", 401));
+    }
+
+    const studentId = req.user._id;
+    const attendanceRecords = await Attendance.find({ student: studentId });
+
+    res.status(200).json({
+        status: "success",
+        data: attendanceRecords,
+    });
+});
+
+// Admin/Instructor manually marks a student (e.g., Excused or Absent)
+export const markManual = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const { studentId, sessionId, status, note } = req.body;
+
+    if (!studentId || !sessionId || !status) {
+        return next(new AppError("Student ID, Session ID, and Status are required", 400));
+    }
+
+    const allowed = ["present", "absent", "late", "excused"];
+    if (!allowed.includes(status)) {
+        return next(new AppError("Invalid status", 400));
+    }
+
+    // Check if session exists
+    const session = await Session.findById(sessionId);
+    if (!session) return next(new AppError("Session not found", 404));
+
+    // Check for existing record
+    let attendance = await Attendance.findOne({ student: studentId, session: sessionId });
+
+    if (attendance) {
+        attendance.status = status;
+        attendance.note = note || attendance.note;
+        attendance.updatedAt = new Date();
+        await attendance.save();
+    } else {
+        attendance = await Attendance.create({
+            student: studentId,
+            session: sessionId,
+            status,
+            note,
+            markedAt: new Date(),
+        });
+    }
+
+    res.status(200).json({
+        status: "success",
+        data: attendance,
+    });
+});
+

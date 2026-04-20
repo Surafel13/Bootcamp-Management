@@ -1,72 +1,170 @@
 import type { Request, Response, NextFunction } from "express";
 import Submission from "../models/submission.model.js";
+import Task from "../models/task.model.js";
 import Notification from "../models/notification.model.js";
 import { sendEmail } from "../services/email.service.js";
 import catchAsync from "../utils/catchAsync.js";
 import AppError from "../utils/appError.js";
 import type { IUser, ITask } from "../types/types.js";
 
-export const gradeSubmission = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const { score, feedback } = req.body;
-    const { submissionId } = req.params;
+// Student submits a task
+export const submitTask = catchAsync(
+	async (req: Request, res: Response, next: NextFunction) => {
+		const { task: taskId, githubLink } = req.body;
 
-    // 1. Update the submission
-    const submission = await Submission.findByIdAndUpdate(
-      submissionId,
-      {
-        score,
-        feedback,
-        status: "graded",
-      },
-      { new: true, runValidators: true },
-    ).populate("student task");
+		const task = await Task.findById(taskId);
+		if (!task)
+			return next(new AppError("Task not found", 404, { task: "Not found" }));
 
-    if (!submission) {
-      return next(new AppError("No submission found with that ID", 404, {
-        id: "Submission not found"
-      }));
-    }
+		// Deadline enforcement
+		if (!task.allowLateSubmission && new Date() > task.deadline) {
+			return next(
+				new AppError("Submission deadline has passed", 422, {
+					deadline: "No late submissions allowed for this task",
+				}),
+			);
+		}
 
-    const task = submission.task as ITask;
+		// Validate GitHub link format
+		if (githubLink && !/^https?:\/\/(www\.)?github\.com\/.+/.test(githubLink)) {
+			return next(
+				new AppError("Invalid GitHub link format", 422, {
+					githubLink: "Must be a valid github.com URL",
+				}),
+			);
+		}
 
-    // 2. Create an In-App Notification
-    await Notification.create({
-      user: submission.student._id,
-      message: `Your submission for "${task.title}" has been graded. Score: ${score}`,
-      type: "grade",
-    });
+		// Check if already submitted – if so, increment version (resubmission)
+		const existing = await Submission.findOne({
+			student: req.user!._id,
+			task: taskId,
+		}).sort("-version");
 
-    // 3. Trigger Email Notification to the student
-    const student = submission.student as IUser;
-    const studentEmail = student.email;
-    const emailSubject = `Task Graded: ${task.title}`;
-    const emailText = `
-    Hello ${student.name},
-    
-    Your submission for the task "${task.title}" has been reviewed.
-    
-    Score: ${score}/100
-    Feedback: ${feedback || "No specific feedback provided."}
-    
-    You can view full details in the student portal.
-  `;
+		const version = existing ? existing.version + 1 : 1;
 
-    // Send email (using the email service)
-    await sendEmail(studentEmail, emailSubject, emailText);
+		const newSubmission = await Submission.create({
+			...req.body,
+			student: req.user!._id,
+			version,
+			status: "submitted",
+		});
 
-    res.status(200).json({
-      status: "success",
-      data: submission,
-    });
-  },
+		res.status(201).json({ status: "success", data: { submission: newSubmission } });
+	},
 );
 
-export const submitTask = catchAsync(async (req: Request, res: Response) => {
-  // Logic for student to submit a task
-  const newSubmission = await Submission.create({
-    ...req.body,
-    student: req?.user?._id,
-  });
-  res.status(201).json({ status: "success", data: newSubmission });
+// Instructor/admin grades a submission
+export const gradeSubmission = catchAsync(
+	async (req: Request, res: Response, next: NextFunction) => {
+		const { score, feedback, status } = req.body;
+		const { submissionId } = req.params;
+
+		const allowedStatuses = ["graded", "returned"];
+		if (status && !allowedStatuses.includes(status)) {
+			return next(
+				new AppError(`Status must be one of: ${allowedStatuses.join(", ")}`, 400, {
+					status: "Invalid",
+				}),
+			);
+		}
+
+		const submission = await Submission.findByIdAndUpdate(
+			submissionId,
+			{ score, feedback, status: status || "graded" },
+			{ new: true, runValidators: true },
+		).populate("student task");
+
+		if (!submission)
+			return next(new AppError("No submission found with that ID", 404, { id: "Submission not found" }));
+
+		const task = submission.task as ITask;
+		const student = submission.student as IUser;
+
+		// In-app notification
+		await Notification.create({
+			user: student._id,
+			message: `Your submission for "${task.title}" has been graded. Score: ${score}/100`,
+			type: "grade",
+		});
+
+		// Email notification
+		sendEmail(
+			student.email,
+			`Task Graded: ${task.title}`,
+			`Hello ${student.name},\n\nYour submission for "${task.title}" has been reviewed.\n\nScore: ${score}/100\nFeedback: ${feedback || "No specific feedback provided."}\n\nView full details in the student portal.`,
+		).catch(() => {});
+
+		res.status(200).json({ status: "success", data: { submission } });
+	},
+);
+
+// Admin/instructor: list all submissions
+export const getAllSubmissions = catchAsync(async (req: Request, res: Response) => {
+	const { task, student, status } = req.query;
+	const filter: Record<string, any> = {};
+
+	if (task) filter.task = task;
+	if (student) filter.student = student;
+	if (status) filter.status = status;
+
+	const submissions = await Submission.find(filter)
+		.populate("student", "name email")
+		.populate("task", "title deadline division")
+		.sort("-submittedAt");
+
+	res.status(200).json({
+		status: "success",
+		results: submissions.length,
+		data: { submissions },
+	});
+});
+
+// Get single submission
+export const getSubmissionById = catchAsync(
+	async (req: Request, res: Response, next: NextFunction) => {
+		const submission = await Submission.findById(req.params.id)
+			.populate("student", "name email")
+			.populate("task", "title deadline");
+
+		if (!submission)
+			return next(new AppError("Submission not found", 404, { id: "Not found" }));
+
+		// Students can only view their own
+		if (
+			req.user!.role === "student" &&
+			submission.student.toString() !== req.user!._id.toString()
+		) {
+			return next(new AppError("You do not have permission to view this submission", 403, {}));
+		}
+
+		res.status(200).json({ status: "success", data: { submission } });
+	},
+);
+
+// All submissions for a specific task (instructor/admin)
+export const getSubmissionsByTask = catchAsync(
+	async (req: Request, res: Response) => {
+		const submissions = await Submission.find({ task: req.params.taskId })
+			.populate("student", "name email")
+			.sort("-submittedAt");
+
+		res.status(200).json({
+			status: "success",
+			results: submissions.length,
+			data: { submissions },
+		});
+	},
+);
+
+// Student's own submissions
+export const getMySubmissions = catchAsync(async (req: Request, res: Response) => {
+	const submissions = await Submission.find({ student: req.user!._id })
+		.populate("task", "title deadline division")
+		.sort("-submittedAt");
+
+	res.status(200).json({
+		status: "success",
+		results: submissions.length,
+		data: { submissions },
+	});
 });

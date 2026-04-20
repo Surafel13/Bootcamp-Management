@@ -3,6 +3,7 @@ import connectDB from "./config/db.js";
 import env from "./config/env.js";
 import logger from "./utils/logger.js";
 import type { Server } from "http";
+import { initCronJobs } from "./services/cron.service.js";
 
 const PORT = env.PORT;
 
@@ -17,6 +18,7 @@ process.on("uncaughtException", (err) => {
 const startServer = async () => {
   try {
     await connectDB();
+    initCronJobs();
 
     server = app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);

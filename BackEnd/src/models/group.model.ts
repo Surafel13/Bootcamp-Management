@@ -2,13 +2,22 @@ import mongoose from "mongoose";
 import type { IGroup } from "../types/types.js";
 
 const groupSchema = new mongoose.Schema<IGroup>({
-  name: { type: String, required: true },
-  division: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Division",
-    required: true,
-  },
-  members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+	name: { type: String, required: true },
+	description: String,
+	division: {
+		type: mongoose.Schema.Types.ObjectId,
+		ref: "Division",
+		required: true,
+	},
+	members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+	createdBy: {
+		type: mongoose.Schema.Types.ObjectId,
+		ref: "User",
+		required: true,
+	},
+	createdAt: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.model<IGroup>("Group", groupSchema);
+const Group = mongoose.model<IGroup>("Group", groupSchema);
+
+export default Group;

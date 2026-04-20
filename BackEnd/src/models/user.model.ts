@@ -17,13 +17,14 @@ const userSchema = new mongoose.Schema<IUser>({
 		enum: ["active", "suspended", "graduated"],
 		default: "active",
 	},
+	passwordResetToken: { type: String, select: false },
+	passwordResetExpires: { type: Date, select: false },
 	createdAt: { type: Date, default: Date.now },
 });
 
 userSchema.pre("save", async function () {
-	if (!this.isModified("password")) return; // Check if the password is modified
-
-	this.password = await bcrypt.hash(this.password, 12); // Hash the password
+	if (!this.isModified("password")) return;
+	this.password = await bcrypt.hash(this.password, 12);
 });
 
 const User = mongoose.model<IUser>("User", userSchema);
