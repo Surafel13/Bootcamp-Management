@@ -129,9 +129,11 @@ export const getSubmissionById = catchAsync(
 		if (!submission)
 			return next(new AppError("Submission not found", 404, { id: "Not found" }));
 
-		// Students can only view their own
+		// Students who are not admins can only view their own
+		const isAdmin = req.user!.roles.some(r => ["division_admin", "super_admin"].includes(r));
 		if (
-			req.user!.role === "student" &&
+			req.user!.roles.includes("student") &&
+			!isAdmin &&
 			submission.student.toString() !== req.user!._id.toString()
 		) {
 			return next(new AppError("You do not have permission to view this submission", 403, {}));

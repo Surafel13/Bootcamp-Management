@@ -65,7 +65,7 @@ export const login = catchAsync(
 					_id: user._id,
 					name: user.name,
 					email: user.email,
-					role: user.role,
+					roles: user.roles,
 					divisions: user.divisions,
 					status: user.status,
 				},

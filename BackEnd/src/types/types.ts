@@ -12,7 +12,7 @@ export interface IUser extends Document {
 	name: string;
 	email: string;
 	password: string;
-	role: "super_admin" | "division_admin" | "student";
+	roles: ("super_admin" | "division_admin" | "student")[];
 	divisions: Types.ObjectId[];
 	status: "active" | "suspended" | "graduated";
 	passwordResetToken?: string;

@@ -110,8 +110,9 @@ export const getAllSessions = catchAsync(async (req: Request, res: Response) => 
 	const { division, status, from, to } = req.query;
 	const filter: Record<string, any> = {};
 
-	// Students can only see their own divisions' sessions
-	if (req.user!.role === "student") {
+	// Students who are not admins can only see their own divisions' sessions
+	const isAdmin = req.user!.roles.some(r => ["division_admin", "super_admin"].includes(r));
+	if (req.user!.roles.includes("student") && !isAdmin) {
 		filter.division = { $in: req.user!.divisions };
 	} else if (division) {
 		filter.division = division;

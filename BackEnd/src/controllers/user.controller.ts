@@ -6,9 +6,9 @@ import AppError from "../utils/appError.js";
 
 // Admin creates a user (no self-registration per SRS §4.1)
 export const createUser = catchAsync(async (req: Request, res: Response) => {
-	const { name, email, password, role, divisions, status } = req.body;
+	const { name, email, password, roles, divisions, status } = req.body;
 
-	const user = await User.create({ name, email, password, role, divisions, status });
+	const user = await User.create({ name, email, password, roles, divisions, status });
 
 	// Hide password in response
 	const userResponse = { ...user.toObject() } as any;
@@ -22,7 +22,7 @@ export const getAllUsers = catchAsync(async (req: Request, res: Response) => {
 	const { role, status, division } = req.query;
 
 	const filter: Record<string, any> = {};
-	if (role) filter.role = role;
+	if (role) filter.roles = role;
 	if (status) filter.status = status;
 	if (division) filter.divisions = { $in: [division] };
 

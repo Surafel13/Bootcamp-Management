@@ -38,9 +38,12 @@ export const protect = catchAsync(
 	},
 );
 
-export const restrictTo = (...roles: IUser["role"][]) => {
+export const restrictTo = (...allowedRoles: IUser["roles"][number][]) => {
 	return (req: Request, _res: Response, next: NextFunction) => {
-		if (!roles.includes(req?.user?.role!)) {
+		// Check if any of the user's roles are in the allowedRoles list
+		const hasRole = req.user?.roles.some((role) => allowedRoles.includes(role));
+
+		if (!hasRole) {
 			return next(
 				new AppError("You do not have permission for this action", 403, {
 					role: "Insufficient permissions",

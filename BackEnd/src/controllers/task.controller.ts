@@ -36,7 +36,8 @@ export const getAllTasks = catchAsync(async (req: Request, res: Response) => {
 	const { division } = req.query;
 	const filter: Record<string, any> = {};
 
-	if (req.user!.role === "student") {
+	const isAdmin = req.user!.roles.some(r => ["division_admin", "super_admin"].includes(r));
+	if (req.user!.roles.includes("student") && !isAdmin) {
 		filter.division = { $in: req.user!.divisions };
 	} else if (division) {
 		filter.division = division;
