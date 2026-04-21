@@ -7,6 +7,7 @@ import catchAsync from "../utils/catchAsync.js";
 import AppError from "../utils/appError.js";
 import env from "../config/env.js";
 import { sendEmail } from "../services/email.service.js";
+import Notification from "../models/notification.model.js";
 
 interface TokenPayload extends jwt.JwtPayload {
 	_id: string;
@@ -47,6 +48,19 @@ export const login = catchAsync(
 					status: "Account suspended",
 				}),
 			);
+		}
+
+		if (!user.firstLogin) {
+			user.firstLogin = true;
+
+			const notification = await Notification.create({
+				user: user._id,
+				message: "Welcome to CSEC!, you're now a member of the CSEC community. Please change your default password.",
+				type: "general",
+				read: false,
+			});
+
+			notification.save();
 		}
 
 		const accessToken = signToken(user._id.toString(), env.JWT_SECRET, "24h");
