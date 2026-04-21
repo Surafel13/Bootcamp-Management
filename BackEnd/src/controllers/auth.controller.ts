@@ -125,13 +125,13 @@ export const forgotPassword = catchAsync(
 		user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 		await user.save({ validateBeforeSave: false });
 
-		const resetURL = `${env.FRONTEND_URL}/reset-password/${resetToken}`;
+		const resetURL = `http://localhost:5173/reset-password/${resetToken}`;
 
 		try {
 			await sendEmail(
 				user.email,
 				"BMS – Password Reset Request",
-				`You requested a password reset. Click the link below to reset your password (valid for 1 hour):\n\n${resetURL}\n\nIf you did not request this, please ignore this email.`,
+				`You did not requested a password reset. Click the link below to reset your password (valid for 1 hour):\n\n${resetURL}\n\nIf you did not request this, please ignore this email.`,
 			);
 			res.status(200).json({
 				status: "success",

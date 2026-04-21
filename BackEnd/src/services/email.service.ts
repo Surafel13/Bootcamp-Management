@@ -6,11 +6,17 @@ const transporter = nodemailer.createTransport({
 	auth: { user: env.EMAIL_USER, pass: env.EMAIL_PASS },
 });
 
-export const sendEmail = async (to: string, subject: string, text: string) => {
+export const sendEmail = async (
+	to: string,
+	subject: string,
+	text: string,
+	html?: string,
+) => {
 	await transporter.sendMail({
 		from: '"BMS Admin" <noreply@bms.com>',
 		to,
 		subject,
 		text,
+		
 	});
 };
