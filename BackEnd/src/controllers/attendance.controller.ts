@@ -14,6 +14,7 @@ import QRCode from "qrcode";
 interface TokenPayload extends jwt.JwtPayload {
 	sessionId: string;
 	qrSecret: string;
+	generationCount: number;
 }
 
 // Memory store for tokens (Use Redis for multi-server setups)
@@ -97,11 +98,13 @@ export const scanQR = catchAsync(
 				return next(new AppError("Already marked attendance", 400));
 			}
 
-			// 7. Calculate status (Late if >10 minutes after session start)
-			const sessionStart = new Date(session.startTime).getTime();
-			const now = new Date().getTime();
-			const diffInMinutes = (now - sessionStart) / (1000 * 60);
-			const status = diffInMinutes > 10 ? "late" : "present";
+			// 7. Calculate status based on generationCount
+			let status = "present";
+			if (decoded.generationCount === 2) {
+				status = "late";
+			} else if (decoded.generationCount > 2) {
+				return next(new AppError("Attendance window closed (Marked Absent)", 403));
+			}
 
 			// 8. Create Attendance
 			await Attendance.create({

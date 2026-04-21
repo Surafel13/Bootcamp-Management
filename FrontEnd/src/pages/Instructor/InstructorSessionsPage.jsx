@@ -120,6 +120,7 @@ export default function InstructorSessionsPage() {
   const [editId, setEditId] = useState(null);
   const [toast, setToast] = useState(null);
   const [form, setForm] = useState({ title:'', startTime:'', endTime:'', location:'Room 101', status:'upcoming', division: '', instructor: '' });
+  const [stats, setStats] = useState({ assignedStudents: 0, totalSessions: 0, avgAttendance: '0%', recentRating: '0.0' });
 
   const fetchSessions = async () => {
     try {
@@ -133,8 +134,18 @@ export default function InstructorSessionsPage() {
     }
   };
 
+  const fetchStats = async () => {
+    try {
+      const data = await apiFetch('/reports/dashboard-stats');
+      setStats(data.data);
+    } catch (err) {
+      console.error('Failed to fetch stats:', err);
+    }
+  };
+
   useEffect(() => {
     fetchSessions();
+    fetchStats();
   }, []);
 
   const showToast = (msg, type = 'success') => {
@@ -210,10 +221,10 @@ export default function InstructorSessionsPage() {
       {qrTarget && <QRModal sessionId={qrTarget} onClose={() => setQrTarget(null)} />}
 
       <div className="stats-grid" style={{ marginBottom: 24 }}>
-        <StatCard label="Assigned Students" value={user.divisions.length > 0 ? "42" : "0"} sub="Active now" icon={Users} color="#025961"  />
-        <StatCard label="Total Sessions" value={sessions.length}  sub="Life-time" icon={CalendarDays} color="#168b96" />
-        <StatCard label="Avg Attendance" value="91%" sub="+5% this week" icon={CheckCircle} color="#00b894" />
-        <StatCard label="Recent Rating" value="4.9" sub="Excellent" icon={Star} color="#fdcb6e" />
+        <StatCard label="Assigned Students" value={stats.assignedStudents} sub="Active now" icon={Users} color="#025961"  />
+        <StatCard label="Total Sessions" value={stats.totalSessions}  sub="Life-time" icon={CalendarDays} color="#168b96" />
+        <StatCard label="Avg Attendance" value={stats.avgAttendance} sub="+5% this week" icon={CheckCircle} color="#00b894" />
+        <StatCard label="Recent Rating" value={stats.recentRating} sub="Excellent" icon={Star} color="#fdcb6e" />
       </div>
 
       <div className="card">

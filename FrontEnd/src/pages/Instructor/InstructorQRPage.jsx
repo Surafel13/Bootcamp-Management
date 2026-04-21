@@ -8,9 +8,10 @@ export default function InstructorQRPage() {
   const [sessions, setSessions] = useState([]);
   const [activeSession, setActiveSession] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [qrToken, setQrToken] = useState('');
-  const [timeLeft, setTimeLeft] = useState(13);
+  const [qrToken, setQrToken] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(20);
   const [qrLoading, setQrLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const fetchOngoingSessions = async () => {
     try {
@@ -28,12 +29,16 @@ export default function InstructorQRPage() {
   const getQR = async (sessionId) => {
     try {
       setQrLoading(true);
+      setErrorMsg('');
       const data = await apiFetch(`/sessions/${sessionId}/generate-qr`, { method: 'POST' });
       setQrToken(data.qrImage); // Set the base64 image string
-      setTimeLeft(13);
-      setQrLoading(false);
+      setTimeLeft(20);
     } catch (err) {
       console.error(err);
+      setErrorMsg(`${err.message} (ID: ${sessionId})`);
+      setQrToken(null);
+    } finally {
+      setQrLoading(false);
     }
   };
 
@@ -43,21 +48,30 @@ export default function InstructorQRPage() {
 
   useEffect(() => {
     let interval;
-    if (activeSession) {
+    if (activeSession && qrToken && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1) {
-            getQR(activeSession._id);
-            return 13;
+            setQrToken(null);
+            return 0;
           }
           return prev - 1;
         });
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [activeSession]);
+  }, [activeSession, qrToken, timeLeft]);
 
   const handleStartQR = (session) => {
+    const now = new Date();
+    const startTime = new Date(session.startTime);
+    if (now < startTime) {
+      const diffMs = startTime - now;
+      const hoursLeft = Math.floor(diffMs / (1000 * 60 * 60));
+      const minutesLeft = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      alert(`Cannot generate QR code yet.\nSession starts in ${hoursLeft} hours and ${minutesLeft} minutes.`);
+      return;
+    }
     setActiveSession(session);
     getQR(session._id);
   };
@@ -127,22 +141,35 @@ export default function InstructorQRPage() {
             marginBottom: 30,
             position: 'relative'
           }}>
-            {qrLoading ? (
+            {errorMsg ? (
+              <div style={{ width: 300, height: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'red', textAlign: 'center' }}>
+                <AlertCircle size={48} style={{ marginBottom: 16 }} />
+                <p style={{ fontWeight: 'bold' }}>{errorMsg}</p>
+              </div>
+            ) : qrLoading ? (
               <div style={{ width: 300, height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <RefreshCw className="animate-spin" size={32} color="var(--primary)" />
               </div>
-            ) : (
+            ) : qrToken ? (
               <img 
                 src={qrToken} // The backend now sends the full data URL in qrImage/qrToken
                 alt="Attendance QR" 
                 style={{ width: 300, height: 300 }}
               />
+            ) : (
+              <div style={{ width: 300, height: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-input)', borderRadius: 12 }}>
+                <QrCode size={48} color="var(--text-muted)" style={{ marginBottom: 16 }} />
+                <p style={{ color: 'var(--text-secondary)', marginBottom: 16, textAlign: 'center', padding: '0 20px' }}>QR Code Expired or Not Generated.</p>
+                <button className="btn btn-primary" onClick={() => getQR(activeSession._id)}>
+                  Generate / Refresh
+                </button>
+              </div>
             )}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-            <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--primary)' }}>
-              Refreshing in {timeLeft}s
+            <div style={{ fontSize: '1.5rem', fontWeight: 900, color: qrToken ? 'var(--primary)' : 'var(--text-muted)' }}>
+              {qrToken ? `Expiring in ${timeLeft}s` : 'Waiting for generation'}
             </div>
             <div className="badge" style={{ padding: '6px 16px', background: 'var(--primary-glow)', color: 'var(--primary)', fontWeight: 800 }}>
               <RefreshCw size={14} style={{ marginRight: 6 }} /> Dynamic Anti-Fraud Mode Active

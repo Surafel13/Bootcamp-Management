@@ -26,9 +26,10 @@ export default function StudentTasksPage() {
       setLoading(true);
       const [tasksData, subsData] = await Promise.all([
         apiFetch('/tasks'),
-        apiFetch('/submissions/me') // Assuming we add this endpoint or similar
+        apiFetch('/submissions/me')
       ]);
-      setTasks(tasksData.data.tasks);
+      console.log('Student Tasks Received:', tasksData.data.tasks);
+      setTasks(tasksData.data.tasks || []);
       setSubmissions(subsData.data.submissions || []);
     } catch (err) {
       console.error('Fetch error:', err);
@@ -61,8 +62,9 @@ export default function StudentTasksPage() {
     setShowModal(true);
   };
 
-  const isDeadlinePassed = (deadline) => {
-    return new Date(deadline) < new Date();
+  const isDeadlinePassed = (task) => {
+    if (task.allowLateSubmission) return false;
+    return new Date(task.deadline) < new Date();
   };
 
   const handleSubmit = async (e) => {
@@ -115,7 +117,7 @@ export default function StudentTasksPage() {
                 {tasks.length === 0 ? (
                   <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40 }}>No tasks found for your division.</td></tr>
                 ) : tasks.map(task => {
-                  const deadlinePassed = isDeadlinePassed(task.deadline);
+                  const deadlinePassed = isDeadlinePassed(task);
                   const sub = getTaskSubmission(task._id);
                   const status = sub ? (sub.score !== undefined && sub.score !== null ? 'Graded' : 'Submitted') : 'Pending';
 
@@ -153,9 +155,9 @@ export default function StudentTasksPage() {
                           className="btn btn-secondary"
                           style={{ padding: '8px 16px', fontSize: '0.85rem' }}
                           onClick={() => openSubmitModal(task)}
-                          disabled={deadlinePassed && status === 'Pending'}
+                          disabled={deadlinePassed}
                         >
-                          {deadlinePassed && status === 'Pending' ? 'Closed' : sub ? 'Update' : 'Submit'}
+                          {deadlinePassed ? 'Closed' : sub ? 'Update' : 'Submit'}
                         </button>
                       </td>
                     </tr>

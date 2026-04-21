@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { QrCode, Camera, CameraOff, CircleCheckBig, AlertTriangle, Shield, CheckCircle } from 'lucide-react';
 import apiFetch from '../../utils/api';
+import jsQR from 'jsqr';
 
 export default function Scanner() {
   const [isScanning, setIsScanning] = useState(false);
@@ -11,6 +12,38 @@ export default function Scanner() {
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const canvasRef = useRef(null);
+  const requestRef = useRef(null);
+
+  const scanLoop = () => {
+    if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      
+      canvas.height = video.videoHeight;
+      canvas.width = video.videoWidth;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: "dontInvert",
+      });
+      
+      if (code && code.data) {
+        let token = code.data;
+        try {
+          const parsed = JSON.parse(code.data);
+          if (parsed.token) token = parsed.token;
+        } catch(e) {}
+        
+        handleScanSuccess(token);
+        return; // stop scanning loop
+      }
+    }
+    
+    requestRef.current = requestAnimationFrame(scanLoop);
+  };
 
   const handleScanSuccess = async (qrToken) => {
     setLoading(true);
@@ -51,6 +84,7 @@ export default function Scanner() {
       setIsScanning(true);
       setScanStatus('scanning');
       setStatusMessage('Waiting for QR code...');
+      requestRef.current = requestAnimationFrame(scanLoop);
     } catch (err) {
       setScanStatus('error');
       setStatusMessage('Camera access denied or unavailable');
@@ -58,6 +92,9 @@ export default function Scanner() {
   };
 
   const stopScanner = () => {
+    if (requestRef.current) {
+      cancelAnimationFrame(requestRef.current);
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
     }
@@ -105,6 +142,7 @@ export default function Scanner() {
                 display: isScanning ? 'block' : 'none',
               }}
             />
+            <canvas ref={canvasRef} style={{ display: 'none' }} />
 
             {!isScanning && scanStatus !== 'success' && (
               <div style={{

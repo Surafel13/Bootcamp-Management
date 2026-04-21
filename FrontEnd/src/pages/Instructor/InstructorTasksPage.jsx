@@ -119,6 +119,8 @@ export default function InstructorTasksPage() {
                     <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--border)' }} />
                     <span>Max Score: {t.maxScore}</span>
                     <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--border)' }} />
+                    <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{t.division?.name || 'Assigned Division'}</span>
+                    <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--border)' }} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                       {t.allowedTypes.includes('github') && <Code size={13} />}
                       {t.allowedTypes.includes('file') && <FileText size={13} />}
@@ -133,10 +135,10 @@ export default function InstructorTasksPage() {
                        setForm({
                          title: t.title,
                          description: t.description || '',
-                         deadline: t.deadline.slice(0, 16),
+                         deadline: t.deadline ? new Date(t.deadline).toISOString().slice(0, 16) : '',
                          maxScore: t.maxScore,
                          allowedTypes: t.allowedTypes,
-                         division: t.division._id || t.division
+                         division: t.division?._id || t.division
                        });
                        setEditId(t._id);
                        setShowModal(true);

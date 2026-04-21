@@ -36,12 +36,17 @@ export const getAllTasks = catchAsync(async (req: Request, res: Response) => {
 	const { division } = req.query;
 	const filter: Record<string, any> = {};
 
-	const isAdmin = req.user!.roles.some(r => ["division_admin", "super_admin"].includes(r));
-	if (req.user!.roles.includes("student") && !isAdmin) {
+	const isSuperAdmin = req.user!.roles.includes("super_admin");
+	const isDivisionAdmin = req.user!.roles.includes("division_admin");
+	const isStudent = req.user!.roles.includes("student");
+
+	if (isSuperAdmin) {
+		if (division) filter.division = division;
+	} else {
 		filter.division = { $in: req.user!.divisions };
-	} else if (division) {
-		filter.division = division;
 	}
+
+	console.log(`Fetching tasks for user ${req.user!.email} (Roles: ${req.user!.roles}). Filter:`, JSON.stringify(filter));
 
 	const tasks = await Task.find(filter as any)
 		.populate("division", "name")

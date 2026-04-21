@@ -15,6 +15,7 @@ const sessionSchema = new mongoose.Schema<ISession>({
 		required: true,
 	},
 	status: { type: String, enum: ["upcoming", "active", "completed", "cancelled"], default: "upcoming" },
+	qrGenerationCount: { type: Number, default: 0 },
 	createdAt: { type: Date, default: Date.now },
 });
 

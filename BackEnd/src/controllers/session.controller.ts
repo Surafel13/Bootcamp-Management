@@ -11,6 +11,7 @@ import crypto from "crypto";
 import env from "../config/env.js";
 import type { ISession } from "../types/types.js";
 import { Types } from "mongoose";
+import * as QRCode from "qrcode";
 
 interface TokenPayload extends jwt.JwtPayload {
 	sessionId: Types.ObjectId;
@@ -28,21 +29,13 @@ export const createSession = catchAsync(
 		const end = new Date(endTime);
 		const now = new Date();
 
-		// 1. Must be at least 1 hour in advance
-		if (start.getTime() - now.getTime() < 60 * 60 * 1000) {
-			return next(
-				new AppError("Sessions must be scheduled at least 1 hour in advance", 422, {
-					startTime: "Too soon",
-				}),
-			);
-		}
 
-		// 2. Minimum duration: 30 minutes
+		// 2. Minimum duration: 1 minute
 		const duration = (end.getTime() - start.getTime()) / (1000 * 60);
-		if (duration < 30) {
+		if (duration < 1) {
 			return next(
-				new AppError("Session must be at least 30 minutes long", 400, {
-					duration: "Minimum 30 minutes required",
+				new AppError("Session must be at least 1 minute long", 400, {
+					duration: "Minimum 1 minute required",
 				}),
 			);
 		}
@@ -165,8 +158,8 @@ export const updateSession = catchAsync(
 			const end = new Date(req.body.endTime || existing.endTime);
 			const duration = (end.getTime() - start.getTime()) / (1000 * 60);
 
-			if (duration < 30)
-				return next(new AppError("Session must be at least 30 minutes long", 400, { duration: "Too short" }));
+			if (duration < 1)
+				return next(new AppError("Session must be at least 1 minute long", 400, { duration: "Too short" }));
 
 			const divisionOverlap = await Session.findOne({
 				division: existing.division,
@@ -249,6 +242,7 @@ export const getSessionAttendance = catchAsync(
 
 // QR Generation (moved here from attendance controller)
 export const generateQR = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+	console.log(`Generating QR for session: ${req.params.sessionId}`);
 	const { sessionId } = req.params;
 	
 	const session = await Session.findById(sessionId);
@@ -258,25 +252,40 @@ export const generateQR = catchAsync(async (req: Request, res: Response, next: N
 	const startTime = new Date(session.startTime);
 	const endTime = new Date(session.endTime);
 
-	// Security Gate: Allow generation from 5 mins before start until session end
-	if (now.getTime() < startTime.getTime() - 5 * 60 * 1000) {
-		return next(new AppError("QR generation is only allowed 5 minutes before the session starts.", 400));
+	// Security Gate: strictly at or after startTime
+	if (now.getTime() < startTime.getTime()) {
+		const diffMs = startTime.getTime() - now.getTime();
+		const hoursLeft = Math.floor(diffMs / (1000 * 60 * 60));
+		const minutesLeft = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+		return next(new AppError(`QR generation is not allowed yet. Session starts in ${hoursLeft} hours and ${minutesLeft} minutes.`, 400));
 	}
 
 	if (now.getTime() > endTime.getTime()) {
 		return next(new AppError("This session has already ended. Cannot generate QR.", 400));
 	}
 
+	session.qrGenerationCount = (session.qrGenerationCount || 0) + 1;
+	await session.save();
+
 	const qrSecret = crypto.randomBytes(16).toString("hex");
 
-	const token = jwt.sign({ sessionId, qrSecret }, env.JWT_QR_SECRET || "qr_scrt", {
-		expiresIn: "13s",
+	const token = jwt.sign({ sessionId, qrSecret, generationCount: session.qrGenerationCount }, env.JWT_QR_SECRET || "qr_scrt", {
+		expiresIn: "20s",
 	});
 
 	activeTokens.set(token, true);
-	setTimeout(() => activeTokens.delete(token), 16000);
+	setTimeout(() => activeTokens.delete(token), 20000);
 
-	res.status(200).json({ status: "success", qrToken: token });
+	const qrData = JSON.stringify({
+		sessionId,
+		token,
+		issued: new Date().toISOString(),
+		generationCount: session.qrGenerationCount
+	});
+
+	const qrImage = await QRCode.toDataURL(qrData);
+
+	res.status(200).json({ status: "success", qrImage, qrToken: token, expiresIn: 20 });
 });
 
 export { usedTokens, activeTokens };

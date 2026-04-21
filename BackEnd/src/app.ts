@@ -63,6 +63,14 @@ app.use("/api/progress", progressRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/reports", reportRoutes);
 
+// Catch-all for undefined routes
+app.use((req, res) => {
+  res.status(404).json({
+    status: "error",
+    message: `Route ${req.originalUrl} not found on this server`,
+  });
+});
+
 // Error Handler
 app.use(errorHandler);
 

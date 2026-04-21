@@ -15,7 +15,13 @@ export const apiFetch = async (endpoint, options = {}) => {
   });
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : {};
+  let data;
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch (err) {
+    console.error('API Parse Error. Received:', text);
+    throw new Error('Server returned invalid response (HTML). Check console for details.');
+  }
 
   if (!response.ok) {
     throw new Error(data.message || 'Something went wrong');

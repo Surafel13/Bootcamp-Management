@@ -31,6 +31,7 @@ export interface ISession extends Document {
 	instructor: Types.ObjectId | IUser;
 	division: Types.ObjectId | IDivision;
 	status: "active" | "cancelled";
+	qrGenerationCount: number;
 	createdAt: Date;
 }
 
