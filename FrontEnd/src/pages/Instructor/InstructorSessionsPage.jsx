@@ -1,24 +1,22 @@
-import { useState } from 'react';
-import { Plus, Pencil, Trash2, X, CalendarDays, Clock, MapPin, Monitor, Users, TrendingUp, Star, CheckCircle } from 'lucide-react';
-
-const SESSIONS = [
-  { id: 1, title: 'Advanced React Patterns',   date: 'Apr 12, 2026', time: '2:00 PM', attendees: 24, location: 'Room 101',    status: 'Upcoming'  },
-  { id: 2, title: 'Web Development Workshop',  date: 'Apr 8, 2026',  time: '2:00 PM', attendees: 32, location: 'Room 101',    status: 'Completed' },
-  { id: 3, title: 'JavaScript Fundamentals',   date: 'Apr 5, 2026',  time: '10:00 AM',attendees: 28, location: 'Online',      status: 'Completed' },
-  { id: 4, title: 'Node.js & REST APIs',        date: 'Apr 1, 2026',  time: '3:00 PM', attendees: 30, location: 'Room 202',   status: 'Completed' },
-  { id: 5, title: 'CSS Grid & Flexbox Deep Dive',date:'Apr 18, 2026', time: '11:00 AM',attendees: 22, location: 'Online',     status: 'Upcoming'  },
-];
+import { useState, useEffect } from 'react';
+import { 
+  Plus, Pencil, Trash2, X, CalendarDays, Clock, MapPin, 
+  Monitor, Users, TrendingUp, Star, CheckCircle, QrCode,
+  AlertCircle
+} from 'lucide-react';
+import apiFetch from '../../utils/api';
+import { useAuth } from '../../context/AuthContext';
 
 const STATUS_STYLE = {
-  Upcoming:  { bg: 'var(--primary-glow)', color: 'var(--primary)' },
-  Completed: { bg: 'rgba(0,184,148,0.12)',  color: '#00b894' },
-  Cancelled: { bg: 'rgba(214,48,49,0.1)',   color: '#d63031' },
+  upcoming:  { bg: 'var(--primary-glow)', color: 'var(--primary)' },
+  completed: { bg: 'rgba(0,184,148,0.12)',  color: '#00b894' },
+  cancelled: { bg: 'rgba(214,48,49,0.1)',   color: '#d63031' },
 };
 
 function StatusBadge({ status }) {
-  const s = STATUS_STYLE[status] || STATUS_STYLE.Upcoming;
+  const s = STATUS_STYLE[status.toLowerCase()] || STATUS_STYLE.upcoming;
   return (
-    <span style={{ padding:'4px 14px', borderRadius:20, fontSize:'0.75rem', fontWeight:800, background:s.bg, color:s.color }}>
+    <span style={{ padding:'4px 14px', borderRadius:20, fontSize:'0.75rem', fontWeight:800, background:s.bg, color:s.color, textTransform: 'capitalize' }}>
       {status}
     </span>
   );
@@ -40,142 +38,291 @@ function StatCard({ label, value, sub, icon: Icon, color }) {
   );
 }
 
-export default function InstructorSessionsPage() {
-  const [sessions, setSessions] = useState(SESSIONS);
-  const [showModal, setShowModal] = useState(false);
-  const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ title:'', date:'', time:'', location:'Room 101', status:'Upcoming' });
+function QRModal({ sessionId, onClose }) {
+  const [qrToken, setQrToken] = useState('');
+  const [timeLeft, setTimeLeft] = useState(13);
+  const [loading, setLoading] = useState(true);
 
-  const openAdd  = () => { setForm({ title:'', date:'', time:'', location:'Room 101', status:'Upcoming' }); setEditId(null); setShowModal(true); };
-  const openEdit = s  => { setForm({ title:s.title, date:s.date, time:s.time, location:s.location, status:s.status }); setEditId(s.id); setShowModal(true); };
-  const del      = id => setSessions(p => p.filter(s => s.id !== id));
-
-  const save = () => {
-    if (!form.title || !form.date || !form.time) return;
-    if (editId) {
-      setSessions(p => p.map(s => s.id === editId ? { ...s, ...form } : s));
-    } else {
-      setSessions(p => [...p, { id: Date.now(), ...form, attendees: 0 }]);
+  const getQR = async () => {
+    try {
+      setLoading(true);
+      const data = await apiFetch(`/sessions/${sessionId}/generate-qr`, { method: 'POST' });
+      setQrToken(data.qrToken);
+      setTimeLeft(13);
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
     }
-    setShowModal(false);
+  };
+
+  useEffect(() => {
+    getQR();
+    const interval = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          getQR(); // Auto-refresh when expires
+          return 13;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [sessionId]);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" style={{ maxWidth: 400, textAlign: 'center', borderRadius: 24 }} onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>Attendance QR Code</h2>
+          <button className="modal-close" onClick={onClose}><X size={18}/></button>
+        </div>
+        <div style={{ padding: 20 }}>
+          {loading ? (
+            <div style={{ height: 250, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Generating...</div>
+          ) : (
+            <div style={{ background: 'white', padding: 20, borderRadius: 16, display: 'inline-block', marginBottom: 20 }}>
+              {/* Using a placeholder service for visual demo, but real token is embedded */}
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrToken}`} 
+                alt="Attendance QR" 
+                style={{ width: 200, height: 200 }}
+              />
+            </div>
+          )}
+          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary)' }}>
+            Refreshing in {timeLeft}s
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: 10 }}>
+            Students should scan this using their dashboard.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function InstructorSessionsPage() {
+  const { user } = useAuth();
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [qrTarget, setQrTarget] = useState(null);
+  const [editId, setEditId] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [form, setForm] = useState({ title:'', startTime:'', endTime:'', location:'Room 101', status:'upcoming', division: '' });
+
+  const fetchSessions = async () => {
+    try {
+      setLoading(true);
+      const data = await apiFetch('/sessions');
+      setSessions(data.data.sessions);
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSessions();
+  }, []);
+
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const openAdd = () => { 
+    setForm({ 
+      title:'', 
+      startTime: '', 
+      endTime: '', 
+      location:'Room 101', 
+      status:'upcoming',
+      division: user.divisions[0]?._id || user.divisions[0] || ''
+    }); 
+    setEditId(null); 
+    setShowModal(true); 
+  };
+
+  const openEdit = s => { 
+    setForm({ 
+      title: s.title, 
+      startTime: s.startTime.slice(0, 16), // Format for datetime-local
+      endTime: s.endTime.slice(0, 16),
+      location: s.location || 'Room 101', 
+      status: s.status,
+      division: s.division._id || s.division
+    }); 
+    setEditId(s._id); 
+    setShowModal(true); 
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to cancel/delete this session?')) return;
+    try {
+      await apiFetch(`/sessions/${id}`, { method: 'DELETE' });
+      setSessions(prev => prev.filter(s => s._id !== id));
+      showToast('Session cancelled.');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const handleSave = async () => {
+    if (!form.title || !form.startTime || !form.endTime) return;
+    try {
+      if (editId) {
+        const data = await apiFetch(`/sessions/${editId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(form)
+        });
+        setSessions(p => p.map(s => s._id === editId ? data.data.session : s));
+        showToast('Session updated.');
+      } else {
+        const data = await apiFetch('/sessions', {
+          method: 'POST',
+          body: JSON.stringify(form)
+        });
+        setSessions(p => [...p, data.data.session]);
+        showToast('Session created.');
+      }
+      setShowModal(false);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
   };
 
   return (
     <div>
-      {/* Stats Area */}
+      {toast && <Toast msg={toast.msg} type={toast.type} />}
+      {qrTarget && <QRModal sessionId={qrTarget} onClose={() => setQrTarget(null)} />}
+
       <div className="stats-grid" style={{ marginBottom: 24 }}>
-        <StatCard label="Total Students" value="156" sub="+12 New" icon={Users} color="#025961"  />
-        <StatCard label="Active Sessions" value="24"  sub="8 this week" icon={CalendarDays} color="#168b96" />
-        <StatCard label="Avg Attendance" value="87%" sub="+5% increase" icon={CheckCircle} color="#00b894" />
-        <StatCard label="Student Rating" value="4.8" sub="Highly rated" icon={Star} color="#fdcb6e" />
+        <StatCard label="Assigned Students" value={user.divisions.length > 0 ? "42" : "0"} sub="Active now" icon={Users} color="#025961"  />
+        <StatCard label="Total Sessions" value={sessions.length}  sub="Life-time" icon={CalendarDays} color="#168b96" />
+        <StatCard label="Avg Attendance" value="91%" sub="+5% this week" icon={CheckCircle} color="#00b894" />
+        <StatCard label="Recent Rating" value="4.9" sub="Excellent" icon={Star} color="#fdcb6e" />
       </div>
 
       <div className="card">
-        <div className="card-header" style={{ padding: '24px 24px 12px' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Manage Sessions</h2>
-          <button className="btn btn-primary" id="create-session-btn" onClick={openAdd} style={{ padding: '8px 18px', borderRadius: 10 }}>
+        <div className="card-header">
+          <h2>Session Management</h2>
+          <button className="btn btn-primary" onClick={openAdd}>
             <Plus size={16} /> Create Session
           </button>
         </div>
-        <div className="table-wrap" style={{ padding: '0 12px 12px' }}>
-          <table>
-            <thead>
-              <tr>
-                <th>Session Details</th>
-                <th>date & Time</th>
-                <th>Location</th>
-                <th>Attendees</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sessions.map(s => (
-                <tr key={s.id}>
-                  <td>
-                    <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.95rem' }}>{s.title}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ID: #BMS-202{s.id}</div>
-                  </td>
-                  <td>
-                    <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{s.date}</span>
-                      <span style={{ fontSize:'0.75rem', color: 'var(--text-secondary)' }}>{s.time}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div style={{ display:'flex', alignItems:'center', gap:8, color:'var(--text-secondary)', fontSize:'0.82rem', fontWeight: 600 }}>
-                      {s.location === 'Online' ? <Monitor size={14} /> : <MapPin size={14} />} {s.location}
-                    </div>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--primary-glow)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 900 }}>
-                        {s.attendees}
-                      </div>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>Students</span>
-                    </div>
-                  </td>
-                  <td><StatusBadge status={s.status} /></td>
-                  <td>
-                    <div className="table-actions">
-                      <button className="action-btn action-btn-edit" onClick={() => openEdit(s)} title="Edit"><Pencil size={15}/></button>
-                      <button className="action-btn action-btn-delete" onClick={() => del(s.id)} title="Delete"><Trash2 size={15}/></button>
-                    </div>
-                  </td>
+        <div className="table-wrap">
+          {loading ? (
+            <div style={{ padding: 40, textAlign: 'center' }}>Loading sessions...</div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Session Details</th>
+                  <th>Date & Time</th>
+                  <th>Location</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sessions.map(s => (
+                  <tr key={s._id}>
+                    <td>
+                      <div style={{ fontWeight: 800 }}>{s.title}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{s.type || 'Technical'}</div>
+                    </td>
+                    <td>
+                      <div style={{ display:'flex', flexDirection:'column' }}>
+                        <span style={{ fontWeight: 700 }}>{new Date(s.startTime).toLocaleDateString()}</span>
+                        <span style={{ fontSize:'0.75rem' }}>{new Date(s.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                      </div>
+                    </td>
+                    <td><Badge text={s.status} colorMap={STATUS_STYLE} /></td>
+                    <td>
+                      <div className="table-actions">
+                        {s.status === 'upcoming' && (
+                          <button className="action-btn" onClick={() => setQrTarget(s._id)} title="Show QR" style={{ color: 'var(--primary)', background: 'var(--primary-glow)' }}>
+                            <QrCode size={15}/>
+                          </button>
+                        )}
+                        <button className="action-btn action-btn-edit" onClick={() => openEdit(s)}><Pencil size={15}/></button>
+                        <button className="action-btn action-btn-delete" onClick={() => handleDelete(s._id)}><Trash2 size={15}/></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
-          <div className="modal" style={{ borderRadius: 20 }}>
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{editId ? 'Edit Session' : 'Create New Session'}</h2>
+              <h2>{editId ? 'Edit Session' : 'Create New Session'}</h2>
               <button className="modal-close" onClick={() => setShowModal(false)}><X size={18}/></button>
             </div>
             <div className="modal-form">
               <div className="form-group">
                 <label>Session Title</label>
-                <input className="form-input" placeholder="e.g. Advanced React Patterns"
-                  value={form.title} onChange={e => setForm(f=>({...f,title:e.target.value}))} />
+                <input className="form-input" value={form.title} onChange={e => setForm(f=>({...f,title:e.target.value}))} />
               </div>
               <div className="form-grid">
                 <div className="form-group">
-                  <label>date</label>
-                  <input className="form-input" type="date" value={form.date}
-                    onChange={e => setForm(f=>({...f,date:e.target.value}))} />
+                  <label>Start Time</label>
+                  <input className="form-input" type="datetime-local" value={form.startTime} onChange={e => setForm(f=>({...f,startTime:e.target.value}))} />
                 </div>
                 <div className="form-group">
-                  <label>Time</label>
-                  <input className="form-input" type="time" value={form.time}
-                    onChange={e => setForm(f=>({...f,time:e.target.value}))} />
+                  <label>End Time</label>
+                  <input className="form-input" type="datetime-local" value={form.endTime} onChange={e => setForm(f=>({...f,endTime:e.target.value}))} />
                 </div>
               </div>
               <div className="form-group">
-                <label>Location / Online Link</label>
-                <input className="form-input" placeholder="Room 101 or https://meet.google.com/..."
-                  value={form.location} onChange={e => setForm(f=>({...f,location:e.target.value}))} />
+                <label>Location</label>
+                <input className="form-input" value={form.location} onChange={e => setForm(f=>({...f,location:e.target.value}))} />
               </div>
               <div className="form-group">
                 <label>Status</label>
-                <select className="form-input" style={{ appearance: 'none' }} value={form.status}
-                  onChange={e => setForm(f=>({...f,status:e.target.value}))}>
-                  <option>Upcoming</option>
-                  <option>Completed</option>
-                  <option>Cancelled</option>
+                <select className="form-input" value={form.status} onChange={e => setForm(f=>({...f,status:e.target.value}))}>
+                  <option value="upcoming">Upcoming</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
                 </select>
               </div>
             </div>
             <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={() => setShowModal(false)} style={{ borderRadius: 10 }}>Cancel</button>
-              <button className="btn btn-primary" onClick={save} style={{ borderRadius: 10 }}>{editId ? 'Save Changes' : 'Create Session'}</button>
+              <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleSave}>{editId ? 'Save Changes' : 'Create Session'}</button>
             </div>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+function Toast({ msg, type = 'success' }) {
+  return (
+    <div className="toast-container">
+      <div className={`toast ${type}`}>
+        <div className="toast-icon">{type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}</div>
+        <div className="toast-body">
+          <h4>{type === 'success' ? 'Success' : 'Error'}</h4>
+          <p>{msg}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Badge({ text, colorMap }) {
+  const s = colorMap[text.toLowerCase()] || colorMap.upcoming;
+  return (
+    <span style={{ padding:'4px 14px', borderRadius:20, fontSize:'0.75rem', fontWeight:800, background:s.bg, color:s.color, textTransform: 'capitalize' }}>
+      {text}
+    </span>
   );
 }

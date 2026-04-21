@@ -3,7 +3,7 @@ import AppError from "../utils/appError.js";
 
 export const authLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000, // 15 minutes
-	max: 5, // Limit each IP to 5 failed attempts per window
+	max: 1000, // Effectively disabled for demo (was 5)
 	handler: (_req, _res, next) => {
 		next(new AppError("Too many failed login attempts, please try again in 15 minutes", 429, {
 			auth: "Rate limit exceeded"

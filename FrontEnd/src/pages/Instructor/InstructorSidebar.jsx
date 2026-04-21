@@ -6,6 +6,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 
 const NAV = [
+  { key: 'overview',   label: 'Dashboard',        icon: BarChart2 },
   { key: 'sessions',   label: 'Sessions',        icon: CalendarDays },
   { key: 'attendance', label: 'Attendance',       icon: Users },
   { key: 'resources',  label: 'Resources',        icon: BookOpen },
@@ -33,7 +34,7 @@ export default function InstructorSidebar({ active, onNavigate, isCollapsed, onT
         {!isCollapsed && (
           <div className="sidebar-logo-text" style={{ marginLeft: 12 }}>
             <h2>Bootcamp MS</h2>
-            <span>Instructor Portal</span>
+            <span>Division Admin Portal</span>
           </div>
         )}
       </div>

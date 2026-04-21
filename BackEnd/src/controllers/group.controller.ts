@@ -51,7 +51,14 @@ export const createGroup = catchAsync(
 export const getAllGroups = catchAsync(async (req: Request, res: Response) => {
 	const { division } = req.query;
 	const filter: Record<string, any> = {};
-	if (division) filter.division = division;
+
+	// Division Locking Logic:
+	const isSuperAdmin = req.user!.roles.includes("super_admin");
+	if (!isSuperAdmin) {
+		filter.division = { $in: req.user!.divisions };
+	} else if (division) {
+		filter.division = division;
+	}
 
 	const groups = await Group.find(filter)
 		.populate("members", "name email")

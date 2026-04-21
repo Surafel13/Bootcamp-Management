@@ -1,33 +1,12 @@
-import React, { useState } from 'react';
-import { Star, Send, Clock, CheckCircle2 } from 'lucide-react';
-
-const ELIGIBLE_SESSIONS = [
-  { id: 1, title: 'Advanced React Patterns', date: 'Apr 12, 2026', instructor: 'Dr. Mitchell' },
-  { id: 2, title: 'JavaScript Fundamentals', date: 'Apr 10, 2026', instructor: 'Emily Rodriguez' },
-  { id: 3, title: 'Data Analysis with Python', date: 'Apr 15, 2026', instructor: 'Dr. R. Lin' },
-];
-
-const PAST_FEEDBACK = [
-  {
-    id: 101,
-    sessionTitle: 'Cybersecurity Fundamentals',
-    rating: 5,
-    comment: "Excellent session! The instructor explained complex topics very clearly with great real-world examples.",
-    date: "Apr 8, 2026"
-  },
-  {
-    id: 102,
-    sessionTitle: 'Web Development Workshop',
-    rating: 4,
-    comment: "Very practical and hands-on. Would have liked more time for the group project.",
-    date: "Apr 5, 2026"
-  },
-];
+import React, { useState, useEffect } from 'react';
+import { Star, Send, CheckCircle2 } from 'lucide-react';
+import apiFetch from '../../utils/api';
 
 export default function StudentFeedbackPage() {
-  const [activeTab, setActiveTab] = useState('submit'); // 'submit' or 'past'
+  const [activeTab, setActiveTab] = useState('submit');
+  const [sessions, setSessions] = useState([]);
+  const [pastFeedback, setPastFeedback] = useState([]);
   
-  // Submit Form State
   const [selectedSession, setSelectedSession] = useState('');
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
@@ -35,28 +14,46 @@ export default function StudentFeedbackPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [sesData, fbData] = await Promise.all([
+          apiFetch('/sessions'),
+          apiFetch('/feedback/me')
+        ]);
+        setSessions((sesData.data.sessions || []).filter(s => s.status === 'completed'));
+        setPastFeedback(fbData.data.feedbacks || fbData.data.feedback || []);
+      } catch (err) {
+        console.error('Failed to load feedback data:', err);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedSession || rating === 0) {
-      alert("Please select a session and provide a rating.");
+      alert('Please select a session and provide a rating.');
       return;
     }
-
     setIsSubmitting(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await apiFetch('/feedback', {
+        method: 'POST',
+        body: JSON.stringify({ session: selectedSession, rating, comment })
+      });
       setSubmitSuccess(true);
-
-      // Reset form after success
       setTimeout(() => {
         setSubmitSuccess(false);
         setSelectedSession('');
         setRating(0);
         setComment('');
       }, 2500);
-    }, 1200);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -129,9 +126,9 @@ export default function StudentFeedbackPage() {
                     required
                   >
                     <option value="">Choose a session you attended...</option>
-                    {ELIGIBLE_SESSIONS.map(session => (
-                      <option key={session.id} value={session.id}>
-                        {session.title} — {session.date} • {session.instructor}
+                    {sessions.map(session => (
+                      <option key={session._id} value={session._id}>
+                        {session.title} — {new Date(session.startTime).toLocaleDateString()}
                       </option>
                     ))}
                   </select>
@@ -208,19 +205,19 @@ export default function StudentFeedbackPage() {
         <div>
           <h3 style={{ marginBottom: '20px', color: 'var(--text-primary)' }}>Your Previous Feedback</h3>
           
-          {PAST_FEEDBACK.length === 0 ? (
+          {pastFeedback.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: '60px 20px' }}>
               <p style={{ color: 'var(--text-secondary)' }}>No feedback submitted yet.</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {PAST_FEEDBACK.map(feedback => (
-                <div key={feedback.id} className="card" style={{ padding: '24px' }}>
+              {pastFeedback.map(feedback => (
+                <div key={feedback._id} className="card" style={{ padding: '24px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                     <div>
-                      <h4 style={{ marginBottom: '6px' }}>{feedback.sessionTitle}</h4>
+                      <h4 style={{ marginBottom: '6px' }}>{feedback.session?.title || 'Session'}</h4>
                       <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                        Submitted on {feedback.date}
+                        Submitted on {new Date(feedback.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                     <div style={{ display: 'flex', gap: '4px' }}>
@@ -234,12 +231,7 @@ export default function StudentFeedbackPage() {
                       ))}
                     </div>
                   </div>
-
-                  <p style={{ 
-                    color: 'var(--text-primary)', 
-                    lineHeight: '1.6',
-                    fontSize: '0.98rem'
-                  }}>
+                  <p style={{ color: 'var(--text-primary)', lineHeight: '1.6', fontSize: '0.98rem' }}>
                     {feedback.comment}
                   </p>
                 </div>

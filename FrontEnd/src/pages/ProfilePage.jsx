@@ -1,18 +1,15 @@
 import React from 'react';
-import { Mail, Phone, MapPin, Calendar, User } from 'lucide-react';
+import { Mail, Phone, MapPin, Calendar, User, Shield, Briefcase } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function ProfilePage() {
-  // Mock student data (in real app, this would come from useAuth or context)
-  const student = {
-    fullName: "Abebe Tadesse",
-    email: "abebe.tadesse@bootcamp.edu",
-    phone: "+251 911 234 567",
-    location: "Addis Ababa, Ethiopia",
-    department: "Software Engineering",
-    joined: "March 2025",
-    avatarInitials: "AT",
-    role: "Student"
-  };
+  const { user } = useAuth();
+
+  if (!user) return <div style={{ padding: 40, textAlign: 'center' }}>Loading profile...</div>;
+
+  const initials = user.name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+  const primaryRole = user.roles[0].replace('_', ' ');
+  const joinDate = new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
     <div className="page-content" style={{ display: 'flex', justifyContent: 'center' }}>
@@ -38,7 +35,7 @@ export default function ProfilePage() {
             fontWeight: 700,
             boxShadow: 'var(--shadow-primary)'
           }}>
-            {student.avatarInitials}
+            {initials}
           </div>
 
           <h1 style={{ 
@@ -47,27 +44,36 @@ export default function ProfilePage() {
             color: 'var(--text-primary)',
             marginBottom: '6px'
           }}>
-            {student.fullName}
+            {user.name}
           </h1>
           
           <p style={{ 
             color: 'var(--text-secondary)', 
             fontSize: '1.05rem',
-            marginBottom: '8px'
+            marginBottom: '12px',
+            textTransform: 'capitalize',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8
           }}>
-            {student.role}
+            <Shield size={16} color="var(--primary)" /> {primaryRole}
           </p>
 
-          <span style={{
-            background: 'var(--primary-glow)',
-            color: 'var(--primary)',
-            padding: '6px 18px',
-            borderRadius: '9999px',
-            fontSize: '0.85rem',
-            fontWeight: 600
-          }}>
-            {student.department}
-          </span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+            {user.divisions.map(d => (
+              <span key={d._id || d} style={{
+                background: 'var(--primary-glow)',
+                color: 'var(--primary)',
+                padding: '4px 14px',
+                borderRadius: '9999px',
+                fontSize: '0.75rem',
+                fontWeight: 700
+              }}>
+                {d.name || 'Assigned Division'}
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* Profile Details */}
@@ -75,82 +81,34 @@ export default function ProfilePage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-              <div style={{ 
-                width: '48px', 
-                height: '48px', 
-                borderRadius: '12px',
-                background: 'var(--primary-light)',
-                color: 'var(--primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <Mail size={22} />
-              </div>
+              <ProfileIcon icon={Mail} />
               <div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '2px' }}>Email Address</p>
-                <p style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{student.email}</p>
+                <p style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{user.email}</p>
               </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-              <div style={{ 
-                width: '48px', 
-                height: '48px', 
-                borderRadius: '12px',
-                background: 'var(--primary-light)',
-                color: 'var(--primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <Phone size={22} />
-              </div>
+              <ProfileIcon icon={Briefcase} />
               <div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '2px' }}>Phone Number</p>
-                <p style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{student.phone}</p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '2px' }}>Account Status</p>
+                <p style={{ color: 'var(--text-primary)', fontWeight: 500, textTransform: 'capitalize' }}>{user.status}</p>
               </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-              <div style={{ 
-                width: '48px', 
-                height: '48px', 
-                borderRadius: '12px',
-                background: 'var(--primary-light)',
-                color: 'var(--primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <MapPin size={22} />
-              </div>
+              <ProfileIcon icon={MapPin} />
               <div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '2px' }}>Location</p>
-                <p style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{student.location}</p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '2px' }}>Organization</p>
+                <p style={{ color: 'var(--text-primary)', fontWeight: 500 }}>Bootcamp Management System</p>
               </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-              <div style={{ 
-                width: '48px', 
-                height: '48px', 
-                borderRadius: '12px',
-                background: 'var(--primary-light)',
-                color: 'var(--primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <Calendar size={22} />
-              </div>
+              <ProfileIcon icon={Calendar} />
               <div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '2px' }}>Member Since</p>
-                <p style={{ color: 'var(--text-primary)', fontWeight: 500 }}>Joined {student.joined}</p>
+                <p style={{ color: 'var(--text-primary)', fontWeight: 500 }}>Joined {joinDate}</p>
               </div>
             </div>
           </div>
@@ -166,9 +124,27 @@ export default function ProfilePage() {
           color: 'var(--text-muted)',
           textAlign: 'center'
         }}>
-          This information is managed by the administration. Contact support for any updates.
+          This profile information is retrieved from your official BMS account.
         </div>
       </div>
+    </div>
+  );
+}
+
+function ProfileIcon({ icon: Icon }) {
+  return (
+    <div style={{ 
+      width: '48px', 
+      height: '48px', 
+      borderRadius: '12px',
+      background: 'rgba(2, 89, 97, 0.08)',
+      color: 'var(--primary)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0
+    }}>
+      <Icon size={22} />
     </div>
   );
 }

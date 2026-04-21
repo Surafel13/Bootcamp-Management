@@ -65,7 +65,7 @@ export const getDivisionStats = catchAsync(
 
 		const [totalStudents, sessions, feedbackStats] = await Promise.all([
 			User.countDocuments({
-				role: "student",
+				roles: "student",
 				divisions: new Types.ObjectId(divisionId as string),
 				status: "active",
 			} as any),

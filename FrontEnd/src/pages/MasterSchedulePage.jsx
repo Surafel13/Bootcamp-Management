@@ -1,66 +1,127 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CalendarDays, Clock, MapPin, Monitor, Filter, ShieldAlert } from 'lucide-react';
-
-const SCHEDULE = [
-  { id: 1, title: 'Advanced React Patterns', division: 'Development', instructor: 'Dr. Mitchell', date: 'Apr 12, 2026', time: '2:00 PM', location: 'Room 101', attendance: 88 },
-  { id: 2, title: 'Network Security Basics',  division: 'Cybersecurity', instructor: 'Prof. Chen', date: 'Apr 12, 2026', time: '10:00 AM', location: 'Room 202', attendance: 95 },
-  { id: 3, title: 'Data Cleaning Workshop',   division: 'Data Science',  instructor: 'Emily Rodriguez', date: 'Apr 11, 2026', time: '9:00 AM', location: 'Online', attendance: 72 },
-];
+import apiFetch from '../utils/api';
 
 export default function MasterSchedulePage() {
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filterDiv, setFilterDiv] = useState('All');
+
+  const fetchAllSessions = async () => {
+    try {
+      setLoading(true);
+      const data = await apiFetch('/sessions');
+      setSessions(data.data.sessions || []);
+    } catch (err) {
+      console.error('Failed to fetch master schedule:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllSessions();
+  }, []);
+
+  const filtered = sessions.filter(s => 
+    filterDiv === 'All' || s.division?.name === filterDiv
+  );
+
+  const divisions = [...new Set(sessions.map(s => s.division?.name).filter(Boolean))];
 
   return (
     <div>
       <div className="card">
         <div className="card-header">
-          <h2>Master Schedule</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ padding: 10, background: 'var(--primary-glow)', borderRadius: 12, color: 'var(--primary)' }}>
+              <CalendarDays size={20} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Master Schedule</h2>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Centralized bootcamp events across all divisions</p>
+            </div>
+          </div>
           <div className="card-header-actions">
-            <select className="form-input" value={filterDiv} onChange={e => setFilterDiv(e.target.value)} style={{ padding: '8px 12px' }}>
-              <option>All Divisions</option>
-              <option>Development</option>
-              <option>Cybersecurity</option>
-              <option>Data Science</option>
-              <option>CPD</option>
+            <select 
+              className="form-input" 
+              value={filterDiv} 
+              onChange={e => setFilterDiv(e.target.value)} 
+              style={{ padding: '8px 12px', minWidth: 160 }}
+            >
+              <option value="All">All Divisions</option>
+              {divisions.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
         </div>
+
         <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Session</th>
-                <th>Division</th>
-                <th>Instructor</th>
-                <th>Date / Time</th>
-                <th>Location</th>
-                <th>Attendance</th>
-                <th>Admin Override</th>
-              </tr>
-            </thead>
-            <tbody>
-              {SCHEDULE.map(s => (
-                <tr key={s.id}>
-                  <td style={{ fontWeight: 600 }}>{s.title}</td>
-                  <td>{s.division}</td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{s.instructor}</td>
-                  <td>
-                    <div style={{ fontSize: '0.8rem' }}>{s.date}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{s.time}</div>
-                  </td>
-                  <td>
-                    {s.location === 'Online' ? <Monitor size={14} /> : <MapPin size={14} />} {s.location}
-                  </td>
-                  <td>{s.attendance}%</td>
-                  <td>
-                    <button className="btn btn-secondary" style={{ padding: '5px 10px', fontSize: '0.7rem', gap: 5 }}>
-                      <ShieldAlert size={14} /> Override
-                    </button>
-                  </td>
+          {loading ? (
+            <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted)' }}>Loading master schedule...</div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Session Title</th>
+                  <th>Division</th>
+                  <th>Date & Time</th>
+                  <th>Location</th>
+                  <th>Status</th>
+                  <th>Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.map(s => (
+                  <tr key={s._id}>
+                    <td>
+                      <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{s.title}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ID: {s._id.slice(-6)}</div>
+                    </td>
+                    <td>
+                      <span className="badge" style={{ background: 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 600 }}>
+                        {s.division?.name || 'General'}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontWeight: 600 }}>{new Date(s.startTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          {new Date(s.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}>
+                        {s.location?.toLowerCase().includes('online') ? <Monitor size={14} /> : <MapPin size={14} />} 
+                        {s.location || 'TBD'}
+                      </div>
+                    </td>
+                    <td>
+                      <span style={{ 
+                        padding: '4px 12px', 
+                        borderRadius: 20, 
+                        fontSize: '0.7rem', 
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                        background: s.status === 'completed' ? 'var(--success-light)' : 'var(--primary-glow)',
+                        color: s.status === 'completed' ? 'var(--success)' : 'var(--primary)'
+                      }}>
+                        {s.status}
+                      </span>
+                    </td>
+                    <td>
+                      <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.75rem', gap: 6 }}>
+                        <ShieldAlert size={14} /> Audit
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={6} style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted)' }}>No sessions scheduled for this division.</td></tr>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>

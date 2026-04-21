@@ -1,35 +1,40 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { QrCode, Camera, CameraOff, CircleCheckBig, AlertTriangle, Shield } from 'lucide-react';
+import { QrCode, Camera, CameraOff, CircleCheckBig, AlertTriangle, Shield, CheckCircle } from 'lucide-react';
+import apiFetch from '../../utils/api';
 
 export default function Scanner() {
   const [isScanning, setIsScanning] = useState(false);
-  const [scanStatus, setScanStatus] = useState('idle'); // idle, scanning, success, error, expired
+  const [scanStatus, setScanStatus] = useState('idle'); // idle, scanning, success, error
   const [statusMessage, setStatusMessage] = useState('');
-  const [scannedCode, setScannedCode] = useState(null);
+  const [manualToken, setManualToken] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
-  // Simulate QR scanning (In real app, integrate with jsQR or ZXing)
-  const simulateScan = () => {
-    if (!isScanning) return;
-
+  const handleScanSuccess = async (qrToken) => {
+    setLoading(true);
     setScanStatus('scanning');
-    setStatusMessage('Scanning...');
+    setStatusMessage('Verifying attendance...');
 
-    // Simulate successful scan after 1.8 seconds
-    setTimeout(() => {
-      const isValid = Math.random() > 0.3; // 70% success rate for demo
+    try {
+      const response = await apiFetch('/attendance/scan', {
+        method: 'POST',
+        body: JSON.stringify({ qrToken })
+      });
 
-      if (isValid) {
-        setScanStatus('success');
-        setStatusMessage('Attendance recorded successfully');
-        setScannedCode('SESS-2026-0416-ROOM-A');
-      } else {
-        setScanStatus('error');
-        setStatusMessage('Invalid or expired QR code');
+      setScanStatus('success');
+      setStatusMessage(`Attendance recorded: ${response.data?.status || 'Success'}!`);
+      setIsScanning(false);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
-    }, 1800);
+    } catch (err) {
+      setScanStatus('error');
+      setStatusMessage(err.message || 'Verification failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const startScanner = async () => {
@@ -45,10 +50,7 @@ export default function Scanner() {
 
       setIsScanning(true);
       setScanStatus('scanning');
-      setStatusMessage('Scanning...');
-      
-      // Start simulated scanning loop
-      simulateScan();
+      setStatusMessage('Waiting for QR code...');
     } catch (err) {
       setScanStatus('error');
       setStatusMessage('Camera access denied or unavailable');
@@ -59,49 +61,27 @@ export default function Scanner() {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
     }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    
     setIsScanning(false);
     setScanStatus('idle');
     setStatusMessage('');
-    setScannedCode(null);
-  };
-
-  // Auto-restart scanning simulation when active
-  useEffect(() => {
-    let interval;
-    if (isScanning && scanStatus === 'scanning') {
-      interval = setInterval(simulateScan, 2500);
-    }
-    return () => clearInterval(interval);
-  }, [isScanning, scanStatus]);
-
-  const resetScan = () => {
-    setScanStatus('idle');
-    setStatusMessage('');
-    setScannedCode(null);
   };
 
   return (
     <div className="page-content" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
       <div className="card" style={{ maxWidth: '620px', width: '100%' }}>
         
-        {/* Header */}
         <div className="card-header">
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <QrCode size={28} color="var(--primary)" />
-            Session QR Check-In
+            Session Check-In
           </h2>
           <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>
-            Point your camera at the session QR code
+            Scan the QR code or enter the token manually
           </p>
         </div>
 
         <div style={{ padding: '32px 28px' }}>
           
-          {/* Scanner Container */}
           <div 
             style={{
               position: 'relative',
@@ -113,7 +93,6 @@ export default function Scanner() {
               boxShadow: 'var(--shadow)',
             }}
           >
-            {/* Video Feed */}
             <video
               ref={videoRef}
               autoPlay
@@ -127,8 +106,7 @@ export default function Scanner() {
               }}
             />
 
-            {/* Placeholder when not scanning */}
-            {!isScanning && (
+            {!isScanning && scanStatus !== 'success' && (
               <div style={{
                 height: '100%',
                 display: 'flex',
@@ -139,131 +117,75 @@ export default function Scanner() {
                 color: 'var(--text-secondary)',
               }}>
                 <Camera size={64} color="var(--primary)" style={{ marginBottom: '16px', opacity: 0.6 }} />
-                <p style={{ fontSize: '1.1rem', fontWeight: 500 }}>Camera is ready</p>
-                <p style={{ fontSize: '0.9rem' }}>Click "Start Scanner" to begin</p>
+                <p style={{ fontSize: '1.1rem', fontWeight: 500 }}>Ready for Check-In</p>
               </div>
             )}
 
-            {/* Scanning Overlay */}
-            {isScanning && (
-              <>
-                {/* Corner Markers */}
-                <div style={{ position: 'absolute', inset: '20px', pointerEvents: 'none' }}>
-                  <div style={{ position: 'absolute', top: '0', left: '0', width: '50px', height: '50px', borderTop: '4px solid var(--primary)', borderLeft: '4px solid var(--primary)', borderRadius: '8px' }} />
-                  <div style={{ position: 'absolute', top: '0', right: '0', width: '50px', height: '50px', borderTop: '4px solid var(--primary)', borderRight: '4px solid var(--primary)', borderRadius: '8px' }} />
-                  <div style={{ position: 'absolute', bottom: '0', left: '0', width: '50px', height: '50px', borderBottom: '4px solid var(--primary)', borderLeft: '4px solid var(--primary)', borderRadius: '8px' }} />
-                  <div style={{ position: 'absolute', bottom: '0', right: '0', width: '50px', height: '50px', borderBottom: '4px solid var(--primary)', borderRight: '4px solid var(--primary)', borderRadius: '8px' }} />
-                </div>
-
-                {/* Animated Scanning Line */}
-                <div 
-                  className="scan-line"
-                  style={{
-                    position: 'absolute',
-                    left: '10%',
-                    right: '10%',
-                    height: '3px',
-                    background: 'linear-gradient(90deg, transparent, var(--primary), transparent)',
-                    boxShadow: '0 0 12px var(--primary)',
-                    animation: 'scan 2s linear infinite',
-                  }}
-                />
-              </>
-            )}
-          </div>
-
-          {/* Status Message */}
-          <div style={{ marginTop: '24px', textAlign: 'center', minHeight: '60px' }}>
             {scanStatus === 'success' && (
-              <div style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontWeight: 600 }}>
-                <CircleCheckBig size={24} />
-                {statusMessage}
+               <div style={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--success-light)',
+                color: 'var(--success)',
+              }}>
+                <CheckCircle size={80} style={{ marginBottom: '16px' }} />
+                <p style={{ fontSize: '1.3rem', fontWeight: 800 }}>SUCCESS</p>
               </div>
-            )}
-
-            {scanStatus === 'error' && (
-              <div style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontWeight: 600 }}>
-                <AlertTriangle size={24} />
-                {statusMessage}
-              </div>
-            )}
-
-            {scanStatus === 'scanning' && (
-              <div style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
-                {statusMessage}
-              </div>
-            )}
-
-            {scanStatus === 'idle' && (
-              <p style={{ color: 'var(--text-muted)' }}>Position the QR code within the frame</p>
             )}
           </div>
 
-          {/* Action Buttons */}
+          <div style={{ marginTop: '24px', textAlign: 'center', minHeight: '60px' }}>
+            {scanStatus === 'success' ? (
+              <div style={{ color: 'var(--success)', fontWeight: 700, fontSize: '1.1rem' }}>{statusMessage}</div>
+            ) : scanStatus === 'error' ? (
+              <div style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <AlertTriangle size={20} /> {statusMessage}
+              </div>
+            ) : (
+              <div style={{ color: 'var(--text-secondary)' }}>{statusMessage || 'Awaiting input...'}</div>
+            )}
+          </div>
+
+          {!isScanning && scanStatus !== 'success' && (
+            <div style={{ marginTop: 20 }}>
+               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, display: 'block' }}>MANUAL TOKEN ENTRY</label>
+               <div style={{ display: 'flex', gap: 10 }}>
+                 <input 
+                  className="form-input" 
+                  placeholder="Paste token here..." 
+                  value={manualToken}
+                  onChange={e => setManualToken(e.target.value)}
+                  style={{ flex: 1 }}
+                 />
+                 <button 
+                  className="btn btn-primary" 
+                  disabled={!manualToken || loading}
+                  onClick={() => handleScanSuccess(manualToken)}
+                 >
+                   Verify
+                 </button>
+               </div>
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: '12px', marginTop: '28px' }}>
-            {!isScanning ? (
-              <button 
-                className="btn btn-primary" 
-                style={{ flex: 1, padding: '14px' }}
-                onClick={startScanner}
-              >
-                <Camera size={18} />
-                Start Scanner
+            {scanStatus === 'success' ? (
+               <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setScanStatus('idle')}>Scan Another</button>
+            ) : !isScanning ? (
+              <button className="btn btn-primary" style={{ flex: 1, padding: '14px' }} onClick={startScanner}>
+                <Camera size={18} /> Start Camera
               </button>
             ) : (
-              <button 
-                className="btn btn-secondary" 
-                style={{ flex: 1, padding: '14px' }}
-                onClick={stopScanner}
-              >
-                <CameraOff size={18} />
-                Stop Scanner
+              <button className="btn btn-secondary" style={{ flex: 1, padding: '14px' }} onClick={stopScanner}>
+                <CameraOff size={18} /> Stop Camera
               </button>
             )}
-
-            <button 
-              className="btn btn-secondary" 
-              style={{ flex: 1, padding: '14px' }}
-              onClick={resetScan}
-              disabled={isScanning}
-            >
-              <CircleCheckBig size={18} />
-              Manual Check-in
-            </button>
-          </div>
-
-          {/* Security Info */}
-          <div style={{ 
-            marginTop: '32px', 
-            padding: '16px', 
-            background: 'var(--bg-input)', 
-            borderRadius: 'var(--radius)', 
-            border: '1px solid var(--border)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            fontSize: '0.85rem'
-          }}>
-            <Shield size={20} color="var(--success)" />
-            <div>
-              <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Secure Scan Active</div>
-              <div style={{ color: 'var(--text-secondary)' }}>Connected to approved campus network</div>
-            </div>
           </div>
         </div>
       </div>
-
-      {/* CSS Animation for scanning line */}
-      <style jsx>{`
-        @keyframes scan {
-          0% { top: 15%; }
-          100% { top: 85%; }
-        }
-        
-        .scan-line {
-          animation: scan 1.8s linear infinite;
-        }
-      `}</style>
     </div>
   );
 }

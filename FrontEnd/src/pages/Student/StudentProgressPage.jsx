@@ -1,29 +1,56 @@
-import { useState } from 'react';
-import { UsersRound, FilePlus, Send, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { UsersRound, Send, AlertCircle, CheckCircle2 } from 'lucide-react';
+import apiFetch from '../../utils/api';
+import { useAuth } from '../../context/AuthContext';
 
 export default function StudentProgressPage() {
+  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [link, setLink] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [pastSubmissions, setPastSubmissions] = useState([]);
+
+  useEffect(() => {
+    const fetchMyProgress = async () => {
+      try {
+        const data = await apiFetch('/progress/me');
+        setPastSubmissions(data.data.progress || []);
+      } catch (err) {
+        console.error('Failed to fetch progress:', err);
+      }
+    };
+    fetchMyProgress();
+  }, []);
 
   const isDescriptionValid = description.length >= 50;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!isDescriptionValid) return;
-    setSubmitted(true);
-    // Reset after some time
-    setTimeout(() => {
-      setSubmitted(false);
-      setTitle('');
-      setDescription('');
-      setLink('');
-    }, 4000);
+    setLoading(true);
+    try {
+      await apiFetch('/progress', {
+        method: 'POST',
+        body: JSON.stringify({ title, description, projectLink: link })
+      });
+      setSubmitted(true);
+      setTimeout(() => {
+        setSubmitted(false);
+        setTitle('');
+        setDescription('');
+        setLink('');
+      }, 4000);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="progress-page" style={{ maxWidth: 800, margin: '0 auto' }}>
+    <div style={{ maxWidth: 800, margin: '0 auto' }}>
       <div className="card">
         <div className="card-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -40,7 +67,7 @@ export default function StudentProgressPage() {
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
               <CheckCircle2 size={60} color="var(--success)" style={{ margin: '0 auto 20px' }} />
               <h3>Progress Submitted!</h3>
-              <p style={{ color: 'var(--text-secondary)' }}>Your weekly update has been recorded for the **Development Track - Group A**.</p>
+              <p style={{ color: 'var(--text-secondary)' }}>Your weekly update has been recorded successfully.</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="modal-form">
@@ -65,15 +92,9 @@ export default function StudentProgressPage() {
                   onChange={e => setDescription(e.target.value)}
                   required
                 />
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginTop: 6,
-                  fontSize: '0.75rem',
-                  color: isDescriptionValid ? 'var(--success)' : 'var(--danger)'
-                }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: '0.75rem', color: isDescriptionValid ? 'var(--success)' : 'var(--danger)' }}>
                   <span>{description.length} characters</span>
-                  <span>{isDescriptionValid ? 'Minimum length met' : `Need ${50 - description.length} more characters`}</span>
+                  <span>{isDescriptionValid ? '✓ Minimum length met' : `Need ${50 - description.length} more characters`}</span>
                 </div>
               </div>
 
@@ -87,35 +108,36 @@ export default function StudentProgressPage() {
                 />
               </div>
 
-              <div
-                style={{
-                  background: 'var(--bg-input)',
-                  padding: 15,
-                  borderRadius: 'var(--radius)',
-                  display: 'flex',
-                  gap: 12,
-                  marginBottom: 25,
-                  border: '1px solid var(--border)'
-                }}
-              >
+              <div style={{ background: 'var(--bg-input)', padding: 15, borderRadius: 'var(--radius)', display: 'flex', gap: 12, marginBottom: 25, border: '1px solid var(--border)' }}>
                 <AlertCircle size={20} color="var(--primary)" style={{ flexShrink: 0 }} />
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
                   <strong>SRS Enforcement:</strong> Submissions are tracked weekly. Ensure the description is substantive (≥ 50 chars) to avoid "Missing Progress" alerts.
                 </p>
               </div>
 
-              <button
-                type="submit"
-                className="btn btn-primary"
-                style={{ width: '100%', gap: 10 }}
-                disabled={!isDescriptionValid}
-              >
-                <Send size={18} /> Submit Weekly Progress
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', gap: 10 }} disabled={!isDescriptionValid || loading}>
+                <Send size={18} /> {loading ? 'Submitting...' : 'Submit Weekly Progress'}
               </button>
             </form>
           )}
         </div>
       </div>
+
+      {pastSubmissions.length > 0 && (
+        <div className="card" style={{ marginTop: 24 }}>
+          <div className="card-header"><h3>Previous Submissions</h3></div>
+          <div style={{ padding: '0 24px 24px' }}>
+            {pastSubmissions.map(p => (
+              <div key={p._id} style={{ padding: '16px 0', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ fontWeight: 700 }}>{p.title}</div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                  {new Date(p.createdAt).toLocaleDateString()} — {p.description.slice(0, 80)}...
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

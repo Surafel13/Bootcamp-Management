@@ -1,245 +1,195 @@
-import React, { useState } from 'react';
-import { Calendar, CheckCircle, XCircle, AlertTriangle, Users, TrendingUp, Search, Filter } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calendar, CheckCircle, XCircle, AlertTriangle, TrendingUp, Search } from 'lucide-react';
+import apiFetch from '../../utils/api';
 
 const AttendancePage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [viewMode, setViewMode] = useState('monthly'); // weekly | monthly
+  const [attendanceHistory, setAttendanceHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Sample Data
-  const summary = {
-    totalClasses: 48,
-    attended: 42,
-    absent: 4,
-    permission: 2,
-    percentage: 87.5
-  };
+  useEffect(() => {
+    const fetchMyAttendance = async () => {
+      try {
+        const data = await apiFetch('/attendance/me');
+        setAttendanceHistory(data.data.attendances || data.data.records || []);
+      } catch (err) {
+        console.error('Failed to fetch attendance:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMyAttendance();
+  }, []);
 
-  const heatmapData = [
-    // Simplified 7x5 example (real implementation can be expanded)
-    { date: '2026-04-01', status: 'present' },
-    { date: '2026-04-02', status: 'present' },
-    { date: '2026-04-03', status: 'absent' },
-    { date: '2026-04-04', status: 'present' },
-    { date: '2026-04-05', status: 'permission' },
-    // ... more data for full month
-  ];
+  const total = attendanceHistory.length;
+  const attended = attendanceHistory.filter(r => r.status === 'present').length;
+  const late = attendanceHistory.filter(r => r.status === 'late').length;
+  const absent = attendanceHistory.filter(r => r.status === 'absent').length;
+  const percentage = total > 0 ? Math.round(((attended + late) / total) * 100) : 0;
 
-  const attendanceHistory = [
-    { id: 1, date: '2026-04-14', subject: 'Advanced React Patterns', status: 'present', time: '2:00 PM - 4:00 PM' },
-    { id: 2, date: '2026-04-13', subject: 'Cybersecurity Fundamentals', status: 'present', time: '3:00 PM - 5:00 PM' },
-    { id: 3, date: '2026-04-12', subject: 'Data Analysis with Python', status: 'absent', time: '1:00 PM - 3:00 PM' },
-    { id: 4, date: '2026-04-11', subject: 'Web Development Workshop', status: 'permission', time: '10:00 AM - 12:00 PM' },
-    { id: 5, date: '2026-04-10', subject: 'Advanced React Patterns', status: 'present', time: '2:00 PM - 4:00 PM' },
-  ];
-
-  const filteredHistory = attendanceHistory
-    .filter(record => 
-      record.subject.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (statusFilter === 'All' || record.status === statusFilter.toLowerCase())
-    );
-
-  const getStatusColor = (status) => {
-    if (status === 'present') return 'var(--success)';
-    if (status === 'absent') return 'var(--danger)';
-    return 'var(--warning)';
-  };
+  const filteredHistory = attendanceHistory.filter(record => {
+    const sessionTitle = record.session?.title || '';
+    const matchSearch = sessionTitle.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchStatus = statusFilter === 'All' || record.status === statusFilter.toLowerCase();
+    return matchSearch && matchStatus;
+  });
 
   const getStatusIcon = (status) => {
     if (status === 'present') return <CheckCircle size={18} color="var(--success)" />;
-    if (status === 'absent') return <XCircle size={18} color="var(--danger)" />;
-    return <AlertTriangle size={18} color="var(--warning)" />;
+    if (status === 'late') return <AlertTriangle size={18} color="#fdcb6e" />;
+    return <XCircle size={18} color="var(--danger)" />;
+  };
+
+  const getStatusColor = (status) => {
+    if (status === 'present') return 'var(--success)';
+    if (status === 'late') return '#b7860a';
+    return 'var(--danger)';
   };
 
   const getHeatmapColor = (status) => {
     if (status === 'present') return '#00b894';
+    if (status === 'late') return '#fdcb6e';
     if (status === 'absent') return '#d63031';
-    return '#fdcb6e';
+    return 'var(--border)';
   };
 
-  const lowAttendance = summary.percentage < 75;
+  const lowAttendance = percentage < 75;
 
   return (
     <div className="page-content">
-      {/* Page Header */}
       <div className="page-header">
-        <h1>Attendance</h1>
+        <h1>My Attendance</h1>
         <p>Track your class attendance and performance</p>
       </div>
 
-      {/* Attendance Summary Cards */}
+      {/* Summary Cards */}
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-icon-wrapper" style={{ background: 'var(--primary-glow)', color: 'var(--primary)' }}>
             <Calendar size={24} />
           </div>
-          <p className="stat-label">Total Classes</p>
-          <div className="stat-value">{summary.totalClasses}</div>
+          <p className="stat-label">Total Sessions</p>
+          <div className="stat-value">{total}</div>
         </div>
-
         <div className="stat-card">
           <div className="stat-icon-wrapper" style={{ background: 'var(--success-light)', color: 'var(--success)' }}>
             <CheckCircle size={24} />
           </div>
-          <p className="stat-label">Classes Attended</p>
-          <div className="stat-value" style={{ color: 'var(--success)' }}>{summary.attended}</div>
+          <p className="stat-label">Attended</p>
+          <div className="stat-value" style={{ color: 'var(--success)' }}>{attended}</div>
         </div>
-
         <div className="stat-card">
           <div className="stat-icon-wrapper" style={{ background: 'var(--danger-light)', color: 'var(--danger)' }}>
             <XCircle size={24} />
           </div>
           <p className="stat-label">Absent</p>
-          <div className="stat-value" style={{ color: 'var(--danger)' }}>{summary.absent}</div>
+          <div className="stat-value" style={{ color: 'var(--danger)' }}>{absent}</div>
         </div>
-
         <div className="stat-card">
           <div className="stat-icon-wrapper" style={{ background: 'var(--primary-glow)', color: 'var(--primary)' }}>
             <TrendingUp size={24} />
           </div>
           <p className="stat-label">Attendance Rate</p>
-          <div className="stat-value" style={{ color: summary.percentage >= 75 ? 'var(--success)' : 'var(--danger)' }}>
-            {summary.percentage}%
+          <div className="stat-value" style={{ color: percentage >= 75 ? 'var(--success)' : 'var(--danger)' }}>
+            {percentage}%
           </div>
           {lowAttendance && (
             <p style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: '8px' }}>
-              ⚠️ Attendance below 75% — needs improvement
+              ⚠️ Below 75% — needs improvement
             </p>
           )}
         </div>
       </div>
 
-      {/* Attendance Heatmap */}
+      {/* Attendance Heatmap (Visual using real data) */}
       <div className="card" style={{ marginTop: '32px' }}>
         <div className="card-header">
-          <h3>Attendance Heatmap</h3>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>April 2026</span>
-          </div>
+          <h3>Attendance Calendar</h3>
         </div>
         <div style={{ padding: '24px' }}>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(7, 1fr)', 
-            gap: '6px',
-            maxWidth: '620px'
-          }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', maxWidth: '620px' }}>
             {Array.from({ length: 35 }).map((_, i) => {
-              const day = i + 1;
-              const status = day % 7 === 0 ? 'absent' : day % 5 === 0 ? 'permission' : 'present';
+              const day = new Date();
+              day.setDate(day.getDate() - (34 - i));
+              const match = attendanceHistory.find(r =>
+                new Date(r.scannedAt).toDateString() === day.toDateString()
+              );
+              const status = match ? match.status : null;
               return (
-                <div
-                  key={i}
-                  title={`April ${day}, 2026 — ${status.charAt(0).toUpperCase() + status.slice(1)}`}
-                  style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '6px',
-                    background: getHeatmapColor(status),
-                    cursor: 'pointer',
-                    transition: 'transform 0.2s',
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.15)'}
-                  onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                <div key={i} title={`${day.toDateString()}${status ? ` — ${status}` : ' — No session'}`} style={{
+                  width: '28px', height: '28px', borderRadius: '6px',
+                  background: status ? getHeatmapColor(status) : 'var(--border)',
+                  cursor: 'pointer', transition: 'transform 0.2s',
+                }}
+                  onMouseOver={e => e.currentTarget.style.transform = 'scale(1.2)'}
+                  onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
                 />
               );
             })}
           </div>
-
-          {/* Legend */}
-          <div style={{ marginTop: '24px', display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '16px', height: '16px', background: '#00b894', borderRadius: '4px' }} />
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Present</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '16px', height: '16px', background: '#d63031', borderRadius: '4px' }} />
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Absent</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '16px', height: '16px', background: '#fdcb6e', borderRadius: '4px' }} />
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Permission</span>
-            </div>
+          <div style={{ marginTop: '20px', display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+            {[['Present', '#00b894'], ['Late', '#fdcb6e'], ['Absent', '#d63031'], ['No Session', 'var(--border)']].map(([label, color]) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 14, height: 14, background: color, borderRadius: 4 }} />
+                <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{label}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Attendance History */}
+      {/* History Table */}
       <div className="card" style={{ marginTop: '32px' }}>
         <div className="card-header">
           <h3>Attendance History</h3>
-          
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 12 }}>
             <div className="search-box">
-              <Search size={16} />
-              <input
-                type="text"
-                placeholder="Search subject..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ width: '180px' }}
-              />
+              <Search size={15} />
+              <input placeholder="Search session..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
             </div>
-
-            <select 
-              value={statusFilter} 
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="form-input"
-              style={{ padding: '8px 12px', minWidth: '140px' }}
-            >
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="form-input" style={{ padding: '8px 12px', minWidth: '140px' }}>
               <option value="All">All Status</option>
-              <option value="Present">Present</option>
-              <option value="Absent">Absent</option>
-              <option value="Permission">Permission</option>
+              <option value="present">Present</option>
+              <option value="late">Late</option>
+              <option value="absent">Absent</option>
             </select>
           </div>
         </div>
-
         <div className="table-wrap" style={{ padding: '0 24px 24px' }}>
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Subject / Course</th>
-                <th>Time</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredHistory.map((record) => (
-                <tr key={record.id}>
-                  <td>{record.date}</td>
-                  <td>{record.subject}</td>
-                  <td>{record.time}</td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {getStatusIcon(record.status)}
-                      <span style={{ 
-                        color: getStatusColor(record.status),
-                        fontWeight: 600,
-                        textTransform: 'capitalize'
-                      }}>
-                        {record.status}
-                      </span>
-                    </div>
-                  </td>
+          {loading ? (
+            <div style={{ padding: 40, textAlign: 'center' }}>Loading your attendance...</div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Session</th>
+                  <th>Time Scanned</th>
+                  <th>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Today's Highlight (if needed) */}
-      <div className="card" style={{ marginTop: '24px', background: 'var(--bg-active)' }}>
-        <div style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ color: 'var(--success)' }}>
-            <CheckCircle size={28} />
-          </div>
-          <div>
-            <h4 style={{ color: 'var(--text-primary)' }}>Today’s Class Marked Present</h4>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Advanced React Patterns • 2:00 PM</p>
-          </div>
+              </thead>
+              <tbody>
+                {filteredHistory.length === 0 ? (
+                  <tr><td colSpan={4} style={{ textAlign: 'center', padding: 30 }}>No attendance records found.</td></tr>
+                ) : filteredHistory.map(record => (
+                  <tr key={record._id}>
+                    <td>{record.scannedAt ? new Date(record.scannedAt).toLocaleDateString() : '-'}</td>
+                    <td>{record.session?.title || '-'}</td>
+                    <td>{record.scannedAt ? new Date(record.scannedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {getStatusIcon(record.status)}
+                        <span style={{ color: getStatusColor(record.status), fontWeight: 600, textTransform: 'capitalize' }}>
+                          {record.status}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>

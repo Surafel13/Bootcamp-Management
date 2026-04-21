@@ -1,54 +1,63 @@
-import { useState, useMemo } from 'react';
-import { Search, Filter, Download, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
-
-const RECORDS = [
-  { id:1, name:'Alex Johnson',    initials:'AJ', session:'React Advanced',         date:'Apr 8, 2026', time:'2:05 PM', status:'Present' },
-  { id:2, name:'Sarah Davis',     initials:'SD', session:'React Advanced',         date:'Apr 8, 2026', time:'2:02 PM', status:'Present' },
-  { id:3, name:'Mike Wilson',     initials:'MW', session:'React Advanced',         date:'Apr 8, 2026', time:'-',       status:'Absent' },
-  { id:4, name:'Emily Chen',      initials:'EC', session:'Web Dev Workshop',       date:'Apr 8, 2026', time:'2:18 PM', status:'Late' },
-  { id:5, name:'James Lee',       initials:'JL', session:'Web Dev Workshop',       date:'Apr 8, 2026', time:'2:01 PM', status:'Present' },
-  { id:6, name:'Olivia Brown',    initials:'OB', session:'JavaScript Fundamentals',date:'Apr 5, 2026', time:'-',       status:'Excused' },
-  { id:7, name:'Noah Martinez',   initials:'NM', session:'JavaScript Fundamentals',date:'Apr 5, 2026', time:'10:05 AM',status:'Present' },
-  { id:8, name:'Sophia Adams',    initials:'SA', session:'Node.js & REST APIs',    date:'Apr 1, 2026', time:'3:15 PM', status:'Late' },
-];
+import { useState, useMemo, useEffect } from 'react';
+import { Search, Download, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
+import apiFetch from '../../utils/api';
 
 const STATUS_STYLES = {
-  Present:  { bg:'rgba(0,184,148,0.12)',   color:'#00b894', icon: CheckCircle  },
-  Absent:   { bg:'rgba(214,48,49,0.1)',    color:'#d63031', icon: XCircle      },
-  Late:     { bg:'rgba(253,203,110,0.18)', color:'#b7860a', icon: Clock        },
-  Excused:  { bg:'rgba(9,132,227,0.12)',   color:'#0984e3', icon: AlertCircle  },
+  present:  { bg:'rgba(0,184,148,0.12)',   color:'#00b894', icon: CheckCircle },
+  absent:   { bg:'rgba(214,48,49,0.1)',    color:'#d63031', icon: XCircle     },
+  late:     { bg:'rgba(253,203,110,0.18)', color:'#b7860a', icon: Clock       },
+  excused:  { bg:'rgba(9,132,227,0.12)',   color:'#0984e3', icon: AlertCircle },
 };
 
 function StatusBadge({ status }) {
-  const s = STATUS_STYLES[status];
-  const Icon = s?.icon || CheckCircle;
+  const key = status.toLowerCase();
+  const s = STATUS_STYLES[key] || STATUS_STYLES.absent;
+  const Icon = s.icon;
   return (
     <span style={{ padding:'4px 10px', borderRadius:999, fontSize:'0.75rem', fontWeight:700,
-      background: s?.bg, color: s?.color, display:'inline-flex', alignItems:'center', gap:5 }}>
+      background: s.bg, color: s.color, display:'inline-flex', alignItems:'center', gap:5, textTransform: 'capitalize' }}>
       <Icon size={12} /> {status}
     </span>
   );
 }
 
 export default function InstructorAttendancePage() {
-  const [records, setRecords] = useState(RECORDS);
+  const [records, setRecords] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterSession, setFilterSession] = useState('All');
 
-  const sessions = ['All', ...new Set(RECORDS.map(r => r.session))];
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [attData, sesData] = await Promise.all([
+        apiFetch('/attendance'),
+        apiFetch('/sessions')
+      ]);
+      setRecords(attData.data.attendances || attData.data.records || []);
+      setSessions(sesData.data.sessions || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const filtered = useMemo(() =>
     records.filter(r => {
-      const matchSearch = r.name.toLowerCase().includes(search.toLowerCase()) ||
-        r.session.toLowerCase().includes(search.toLowerCase());
-      const matchSession = filterSession === 'All' || r.session === filterSession;
+      const name = r.student?.name || '';
+      const sessionTitle = r.session?.title || '';
+      const matchSearch = name.toLowerCase().includes(search.toLowerCase()) ||
+        sessionTitle.toLowerCase().includes(search.toLowerCase());
+      const matchSession = filterSession === 'All' || r.session?._id === filterSession;
       return matchSearch && matchSession;
     }), [records, search, filterSession]);
 
-  const markStatus = (id, status) => setRecords(p => p.map(r => r.id === id ? {...r, status} : r));
-
-  const counts = { Present: 0, Absent: 0, Late: 0, Excused: 0 };
-  records.forEach(r => counts[r.status]++);
+  const counts = { present: 0, absent: 0, late: 0, excused: 0 };
+  records.forEach(r => { const k = r.status?.toLowerCase(); if (counts[k] !== undefined) counts[k]++; });
 
   return (
     <div>
@@ -58,7 +67,7 @@ export default function InstructorAttendancePage() {
           const st = STATUS_STYLES[s];
           return (
             <div key={s} className="stat-card" style={{ borderLeft:`3px solid ${st.color}` }}>
-              <p className="stat-label">{s}</p>
+              <p className="stat-label" style={{ textTransform: 'capitalize' }}>{s}</p>
               <div className="stat-value" style={{ fontSize:'1.7rem', color: st.color }}>{v}</div>
               <div style={{ fontSize:'0.75rem', color:'var(--text-muted)' }}>students</div>
             </div>
@@ -72,65 +81,56 @@ export default function InstructorAttendancePage() {
           <div className="card-header-actions">
             <div className="search-box">
               <Search size={14} />
-              <input placeholder="Search students…" value={search} onChange={e=>setSearch(e.target.value)} />
+              <input placeholder="Search students…" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
             <select className="form-input" style={{ padding:'7px 12px', fontSize:'0.83rem', minWidth:170 }}
-              value={filterSession} onChange={e=>setFilterSession(e.target.value)}>
-              {sessions.map(s => <option key={s}>{s}</option>)}
+              value={filterSession} onChange={e => setFilterSession(e.target.value)}>
+              <option value="All">All Sessions</option>
+              {sessions.map(s => <option key={s._id} value={s._id}>{s.title}</option>)}
             </select>
-            <button className="btn btn-secondary" style={{ gap:6 }}>
-              <Download size={15}/> Export
-            </button>
           </div>
         </div>
 
         <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Student</th>
-                <th>Session</th>
-                <th>date</th>
-                <th>Time</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(r => (
-                <tr key={r.id}>
-                  <td>
-                    <div className="table-user">
-                      <div className="table-avatar">{r.initials}</div>
-                      <span className="table-user-name">{r.name}</span>
-                    </div>
-                  </td>
-                  <td style={{ color:'var(--text-secondary)', fontSize:'0.85rem' }}>{r.session}</td>
-                  <td style={{ color:'var(--text-secondary)', fontSize:'0.82rem' }}>{r.date}</td>
-                  <td style={{ color:'var(--text-secondary)', fontSize:'0.82rem' }}>{r.time}</td>
-                  <td><StatusBadge status={r.status} /></td>
-                  <td>
-                    <div className="table-actions">
-                      {r.status !== 'Present' && (
-                        <button className="btn" style={{ padding:'5px 12px', fontSize:'0.78rem',
-                          background:'rgba(0,184,148,0.12)', color:'#00b894', border:'none', borderRadius:6 }}
-                          onClick={() => markStatus(r.id, 'Present')}>
-                          Mark Present
-                        </button>
-                      )}
-                      {r.status !== 'Absent' && (
-                        <button className="btn" style={{ padding:'5px 12px', fontSize:'0.78rem',
-                          background:'rgba(214,48,49,0.1)', color:'#d63031', border:'none', borderRadius:6 }}
-                          onClick={() => markStatus(r.id, 'Absent')}>
-                          Mark Absent
-                        </button>
-                      )}
-                    </div>
-                  </td>
+          {loading ? (
+            <div style={{ padding: 40, textAlign: 'center' }}>Loading attendance records...</div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Session</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No attendance records found.</td></tr>
+                ) : filtered.map(r => (
+                  <tr key={r._id}>
+                    <td>
+                      <div className="table-user">
+                        <div className="table-avatar">
+                          {r.student?.name?.charAt(0) || '?'}
+                        </div>
+                        <span className="table-user-name">{r.student?.name || 'Unknown'}</span>
+                      </div>
+                    </td>
+                    <td style={{ color:'var(--text-secondary)', fontSize:'0.85rem' }}>{r.session?.title || '-'}</td>
+                    <td style={{ color:'var(--text-secondary)', fontSize:'0.82rem' }}>
+                      {r.scannedAt ? new Date(r.scannedAt).toLocaleDateString() : '-'}
+                    </td>
+                    <td style={{ color:'var(--text-secondary)', fontSize:'0.82rem' }}>
+                      {r.scannedAt ? new Date(r.scannedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
+                    </td>
+                    <td><StatusBadge status={r.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>

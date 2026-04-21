@@ -22,9 +22,17 @@ export const getAllUsers = catchAsync(async (req: Request, res: Response) => {
 	const { role, status, division } = req.query;
 
 	const filter: Record<string, any> = {};
+	
+	// Division Locking Logic:
+	const isSuperAdmin = req.user!.roles.includes("super_admin");
+	if (!isSuperAdmin) {
+		filter.divisions = { $in: req.user!.divisions };
+	} else if (division) {
+		filter.divisions = { $in: [division] };
+	}
+
 	if (role) filter.roles = role;
 	if (status) filter.status = status;
-	if (division) filter.divisions = { $in: [division] };
 
 	const users = await User.find(filter as any).populate("divisions", "name");
 
@@ -61,7 +69,12 @@ export const updateUser = catchAsync(
 
 		const user = await User.findByIdAndUpdate(
 			req.params.id,
-			{ name: req.body.name, email: req.body.email },
+			{ 
+				name: req.body.name, 
+				email: req.body.email,
+				roles: req.body.roles,
+				divisions: req.body.divisions
+			},
 			{ new: true, runValidators: true },
 		).populate("divisions", "name");
 

@@ -3,6 +3,7 @@ import Attendance from "../models/attendance.model.js";
 import Submission from "../models/submission.model.js";
 import Feedback from "../models/feedback.model.js";
 import Session from "../models/session.model.js";
+import AuditLog from "../models/auditLog.model.js";
 import catchAsync from "../utils/catchAsync.js";
 
 export const getAttendanceReport = catchAsync(async (req: Request, res: Response) => {
@@ -86,4 +87,17 @@ export const getFeedbackReport = catchAsync(async (req: Request, res: Response) 
 			stats: feedbackStats[0] || { averageRating: 0, totalFeedback: 0 }
 		}
 	});
+});
+
+export const getAuditLogs = catchAsync(async (req: Request, res: Response) => {
+    const logs = await AuditLog.find()
+        .populate("user", "name email")
+        .sort("-timestamp")
+        .limit(100);
+
+    res.status(200).json({
+        status: "success",
+        results: logs.length,
+        data: { logs }
+    });
 });

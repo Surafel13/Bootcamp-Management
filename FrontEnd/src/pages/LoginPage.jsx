@@ -20,9 +20,10 @@ export default function LoginPage() {
     if (!email || !password) { setError('Please fill in all fields.'); return; }
     setLoading(true);
     setError('');
-    await new Promise(r => setTimeout(r, 900));
-    const ok = login(email, password);
-    if (!ok) setError('Invalid credentials.');
+    const result = await login(email, password);
+    if (!result.success) {
+      setError(result.message || 'Invalid credentials.');
+    }
     setLoading(false);
   };
 

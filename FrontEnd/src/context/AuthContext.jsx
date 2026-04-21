@@ -1,58 +1,58 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
 
+const API_URL = 'http://localhost:3000/api';
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [role, setRole] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = (email, password) => {
-    const emailLower = email.toLowerCase();
-    
-    if (emailLower === 'admin@bms.com') {
-      setUser({
-        name: 'Admin Root',
-        email: 'admin@bms.com',
-        role: 'Super Admin',
-        initials: 'AR',
-      });
-      setRole('Super Admin');
-      return true;
-    }
-    
-    if (emailLower === 'instructor@bms.com') {
-      setUser({
-        name: 'Dr. Sarah Mitchell',
-        email: 'instructor@bms.com',
-        role: 'Lead Instructor',
-        initials: 'SM',
-      });
-      setRole('Instructor');
-      return true;
-    }
-    
-    if (emailLower === 'student@bms.com') {
-      setUser({
-        name: 'John Doe',
-        email: 'student@bms.com',
-        role: 'Student',
-        initials: 'JD',
-      });
-      setRole('Student');
-      return true;
-    }
+  useEffect(() => {
+    // Session persistence disabled as requested: 
+    // The app will now start at the login page every time it is opened.
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    setLoading(false);
+  }, []);
 
-    return false;
+  const login = async (email, password) => {
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (data.status === 'success') {
+        const token = data.accessToken;
+        const userData = data.data?.user || data.user;
+
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        setUser(userData);
+        return { success: true };
+      } else {
+        return { success: false, message: data.message || 'Login failed' };
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      return { success: false, message: 'Server error. Please try again later.' };
+    }
   };
 
   const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setUser(null);
-    setRole(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, role, setRole, login, logout }}>
-      {children}
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 }

@@ -1,92 +1,45 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Bell, Check, Clock, Calendar, AlertCircle, Award, PlayCircle } from 'lucide-react';
-
-const NOTIFICATIONS = [
-  {
-    id: 1,
-    title: 'New Task Assigned',
-    message: 'Algorithm Optimization task has been assigned. Due on Apr 18, 2026.',
-    time: '2 hours ago',
-    read: false,
-    type: 'task'
-  },
-  {
-    id: 2,
-    title: 'Session Reminder',
-    message: 'Cybersecurity Fundamentals session starts tomorrow at 3:00 PM in Virtual Room B.',
-    time: '5 hours ago',
-    read: false,
-    type: 'session'
-  },
-  {
-    id: 6,
-    type: 'bootcamp',
-    title: 'Full-Stack Web Development Bootcamp',
-    message: 'Master modern web development with React, Node.js, MongoDB & more. 12-week intensive program.',
-    time: '2 hours ago',
-    read: false,
-    bootcampId: 101,
-    isNew: true
-  },
-  {
-    id: 7,
-    type: 'bootcamp',
-    title: 'Advanced AI & Machine Learning',
-    message: 'Deep dive into Neural Networks, NLP and Large Language Models. Join our waitlist now.',
-    time: '5 hours ago',
-    read: false,
-    bootcampId: 102,
-    isNew: false
-  },
-  {
-    id: 3,
-    title: 'Feedback Request',
-    message: 'Please rate the "Advanced React Patterns" session you attended last week.',
-    time: 'Yesterday',
-    read: true,
-    type: 'feedback'
-  },
-  {
-    id: 4,
-    title: 'Schedule Update',
-    message: 'Data Analysis with Python session has been moved to April 16 at 1:00 PM.',
-    time: '2 days ago',
-    read: true,
-    type: 'schedule'
-  },
-  {
-    id: 5,
-    title: 'Assignment Graded',
-    message: 'Your submission for "Web Development Workshop" has been graded. View your score.',
-    time: '3 days ago',
-    read: true,
-    type: 'grade'
-  },
-];
+import React, { useState, useEffect } from 'react';
+import { Bell, Check, Clock, Calendar, AlertCircle, Award } from 'lucide-react';
+import apiFetch from '../../utils/api';
 
 export default function Notifications() {
-  const navigate = useNavigate();
-  const [notifications, setNotifications] = useState(NOTIFICATIONS);
+  const [notifications, setNotifications] = useState([]);
   const [filter, setFilter] = useState('All');
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const [loading, setLoading] = useState(true);
 
-  const filteredNotifications = notifications
-    .filter(n => filter === 'All' || (filter === 'Unread' && !n.read));
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const data = await apiFetch('/notifications');
+        setNotifications(data.data.notifications || []);
+      } catch (err) {
+        console.error('Failed to load notifications:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNotifications();
+  }, []);
 
-  const markAsRead = (id) => {
-    setNotifications(prev =>
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    );
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const filtered = notifications.filter(n => filter === 'All' || (filter === 'Unread' && !n.isRead));
+
+  const markAsRead = async (id) => {
+    try {
+      await apiFetch(`/notifications/${id}/read`, { method: 'PATCH' });
+      setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
+    } catch (err) { console.error(err); }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const markAllAsRead = async () => {
+    try {
+      await apiFetch('/notifications/read-all', { method: 'PATCH' });
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    } catch (err) { console.error(err); }
   };
 
-  const getTypeIcon = (notification) => {
-    if (notification.type === 'bootcamp') return <PlayCircle size={22} />;
-    switch (notification.type) {
+  const getTypeIcon = (type) => {
+    switch (type) {
       case 'task': return <Clock size={20} />;
       case 'session': return <Calendar size={20} />;
       case 'feedback': return <Bell size={20} />;
@@ -96,24 +49,23 @@ export default function Notifications() {
     }
   };
 
-  const getTypeColor = (notification) => {
-    if (notification.type === 'bootcamp') return 'var(--primary)';
-    switch (notification.type) {
+  const getTypeColor = (type) => {
+    switch (type) {
       case 'task': return 'var(--primary)';
-      case 'session': return 'var(--warning)';
-      case 'feedback': return 'var(--info)';
+      case 'session': return '#f0a500';
+      case 'feedback': return '#0984e3';
       case 'schedule': return 'var(--danger)';
       case 'grade': return 'var(--success)';
       default: return 'var(--text-secondary)';
     }
   };
 
-  const handleViewDetails = (bootcampId) => {
-    navigate(`/bootcamp-detail/${bootcampId}`);
-  };
-
-  const handleEnrollNow = (bootcampId) => {
-    alert(`Enrolling in bootcamp #${bootcampId}...`);
+  const timeAgo = (date) => {
+    const diff = Math.floor((Date.now() - new Date(date)) / 1000);
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
   };
 
   return (
@@ -123,151 +75,66 @@ export default function Notifications() {
           <Bell size={28} color="var(--primary)" />
           <div>
             <h1>Notifications</h1>
-            <p>Stay updated with important announcements and opportunities</p>
+            <p>Stay updated with important announcements</p>
           </div>
         </div>
       </div>
 
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: '24px',
-        flexWrap: 'wrap',
-        gap: '12px'
-      }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            onClick={() => setFilter('All')}
-            className={`btn ${filter === 'All' ? 'btn-primary' : 'btn-secondary'}`}
-          >
+          <button onClick={() => setFilter('All')} className={`btn ${filter === 'All' ? 'btn-primary' : 'btn-secondary'}`}>
             All ({notifications.length})
           </button>
-          <button
-            onClick={() => setFilter('Unread')}
-            className={`btn ${filter === 'Unread' ? 'btn-primary' : 'btn-secondary'}`}
-          >
+          <button onClick={() => setFilter('Unread')} className={`btn ${filter === 'Unread' ? 'btn-primary' : 'btn-secondary'}`}>
             Unread ({unreadCount})
           </button>
         </div>
-
         {unreadCount > 0 && (
-          <button onClick={markAllAsRead} className="btn btn-secondary">
-            Mark All as Read
-          </button>
+          <button onClick={markAllAsRead} className="btn btn-secondary">Mark All as Read</button>
         )}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {filteredNotifications.length === 0 ? (
-          <div className="card" style={{ textAlign: 'center', padding: '80px 20px' }}>
-            <Bell size={48} color="var(--text-muted)" style={{ marginBottom: '16px' }} />
-            <h3>No notifications found</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>You're all caught up!</p>
-          </div>
-        ) : (
-          filteredNotifications.map((notification) => (
-            <div
-              key={notification.id}
-              className="card"
-              style={{
-                padding: '24px',
-                position: 'relative',
-                borderLeft: notification.read ? 'none' : `5px solid ${getTypeColor(notification)}`,
-                background: notification.read 
-                  ? 'var(--bg-card)' 
-                  : notification.type === 'bootcamp' 
-                    ? 'var(--primary-light)' 
-                    : 'var(--bg-active)',
-              }}
-            >
-              {notification.type === 'bootcamp' && notification.isNew && (
-                <div style={{
-                  position: 'absolute',
-                  top: '16px',
-                  right: '16px',
-                  background: 'var(--primary)',
-                  color: 'white',
-                  fontSize: '0.75rem',
-                  fontWeight: '600',
-                  padding: '4px 10px',
-                  borderRadius: '9999px'
-                }}>
-                  NEW
-                </div>
-              )}
-
+      {loading ? (
+        <div style={{ padding: 40, textAlign: 'center' }}>Loading notifications...</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {filtered.length === 0 ? (
+            <div className="card" style={{ textAlign: 'center', padding: '80px 20px' }}>
+              <Bell size={48} color="var(--text-muted)" style={{ marginBottom: '16px' }} />
+              <h3>No notifications</h3>
+              <p style={{ color: 'var(--text-secondary)' }}>You're all caught up!</p>
+            </div>
+          ) : filtered.map(n => (
+            <div key={n._id} className="card" style={{
+              padding: '24px', position: 'relative',
+              borderLeft: n.isRead ? 'none' : `5px solid ${getTypeColor(n.type)}`,
+              background: n.isRead ? 'var(--bg-card)' : 'var(--bg-active)',
+            }}>
               <div style={{ display: 'flex', gap: '18px' }}>
                 <div style={{
-                  height: '52px',
-                  width: '52px',
-                  borderRadius: '14px',
-                  background: notification.read ? 'var(--bg-hover)' : 'var(--primary-light)',
-                  color: notification.read ? 'var(--text-muted)' : getTypeColor(notification),
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
+                  height: '52px', width: '52px', borderRadius: '14px',
+                  background: n.isRead ? 'var(--bg-hover)' : 'var(--primary-light)',
+                  color: n.isRead ? 'var(--text-muted)' : getTypeColor(n.type),
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                 }}>
-                  {getTypeIcon(notification)}
+                  {getTypeIcon(n.type)}
                 </div>
-
                 <div style={{ flex: 1 }}>
-                  <h4 style={{ 
-                    fontWeight: notification.type === 'bootcamp' ? 700 : 600,
-                    fontSize: '1.08rem',
-                    marginBottom: '8px'
-                  }}>
-                    {notification.title}
-                  </h4>
-
-                  <p style={{ 
-                    color: 'var(--text-secondary)', 
-                    lineHeight: '1.55',
-                    marginBottom: '12px'
-                  }}>
-                    {notification.message}
-                  </p>
-
-                  <p style={{ fontSize: '0.83rem', color: 'var(--text-muted)' }}>
-                    {notification.time}
-                  </p>
-
-                  {notification.type === 'bootcamp' && (
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
-                      <button
-                        onClick={() => handleEnrollNow(notification.bootcampId)}
-                        className="btn btn-primary"
-                        style={{ padding: '10px 24px' }}
-                      >
-                        Enroll Now
-                      </button>
-                      <button
-                        onClick={() => handleViewDetails(notification.bootcampId)}
-                        className="btn btn-secondary"
-                        style={{ padding: '10px 24px' }}
-                      >
-                        View Details
-                      </button>
-                    </div>
-                  )}
+                  <h4 style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '8px' }}>{n.title}</h4>
+                  <p style={{ color: 'var(--text-secondary)', lineHeight: '1.55', marginBottom: '8px' }}>{n.message}</p>
+                  <p style={{ fontSize: '0.83rem', color: 'var(--text-muted)' }}>{timeAgo(n.createdAt)}</p>
                 </div>
-
-                {!notification.read && (
-                  <button
-                    onClick={() => markAsRead(notification.id)}
-                    className="btn btn-secondary"
-                    style={{ padding: '8px 12px', height: 'fit-content', alignSelf: 'flex-start' }}
-                    title="Mark as read"
-                  >
+                {!n.isRead && (
+                  <button onClick={() => markAsRead(n._id)} className="btn btn-secondary"
+                    style={{ padding: '8px 12px', height: 'fit-content', alignSelf: 'flex-start' }} title="Mark as read">
                     <Check size={18} />
                   </button>
                 )}
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

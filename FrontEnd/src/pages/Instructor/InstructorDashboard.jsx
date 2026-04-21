@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import InstructorSidebar from './InstructorSidebar.jsx';
 import InstructorTopbar from './InstructorTopbar.jsx';
+import InstructorOverview from './InstructorOverview.jsx';
 import InstructorSessionsPage from './InstructorSessionsPage.jsx';
 import InstructorAttendancePage from './InstructorAttendancePage.jsx';
 import InstructorResourcesPage from './InstructorResourcesPage.jsx';
@@ -14,11 +15,12 @@ import ProfilePage from '../ProfilePage.jsx';
 import SettingsPage from '../SettingsPage.jsx';
 
 function InstructorDashboard() {
-  const [activePage, setActivePage] = useState('sessions');
+  const [activePage, setActivePage] = useState('overview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const renderPage = () => {
     switch (activePage) {
+      case 'overview':      return <InstructorOverview />;
       case 'sessions':      return <InstructorSessionsPage />;
       case 'attendance':    return <InstructorAttendancePage />;
       case 'resources':     return <InstructorResourcesPage />;

@@ -117,3 +117,16 @@ export const getMyFeedback = catchAsync(async (req: Request, res: Response) => {
 		data: { feedback: feedbackList },
 	});
 });
+
+// Admin view of all feedback
+export const getAllFeedback = catchAsync(async (req: Request, res: Response) => {
+    const feedback = await Feedback.find()
+        .populate("session", "title division")
+        .sort("-createdAt");
+
+    res.status(200).json({
+        status: "success",
+        results: feedback.length,
+        data: { feedback }
+    });
+});

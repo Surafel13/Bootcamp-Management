@@ -1,12 +1,6 @@
-import { useState } from 'react';
-import { LayoutGrid, Pencil, Trash2, Plus, X, CheckCircle } from 'lucide-react';
-
-const INITIAL_DIVISIONS = [
-  { id: 1, name: 'Development',   students: 156, sessions: 24, attendance: 87, status: 'Active' },
-  { id: 2, name: 'Cybersecurity', students: 142, sessions: 20, attendance: 84, status: 'Active' },
-  { id: 3, name: 'Data Science',  students: 138, sessions: 22, attendance: 91, status: 'Active' },
-  { id: 4, name: 'CPD',           students: 124, sessions: 18, attendance: 79, status: 'Active' },
-];
+import { useState, useEffect } from 'react';
+import { LayoutGrid, Pencil, Trash2, Plus, X, CheckCircle, AlertCircle } from 'lucide-react';
+import apiFetch from '../utils/api';
 
 function AttendanceBadge({ value }) {
   const color = value >= 90 ? 'var(--success)' : value >= 80 ? '#0984e3' : '#fdcb6e';
@@ -21,7 +15,7 @@ function AttendanceBadge({ value }) {
   );
 }
 
-function DivIcon({ name }) {
+function DivIcon() {
   return (
     <div style={{
       width: 34, height: 34,
@@ -35,119 +29,163 @@ function DivIcon({ name }) {
   );
 }
 
-function Toast({ msg }) {
+function Toast({ msg, type = 'success' }) {
   return (
     <div className="toast-container">
-      <div className="toast success">
-        <div className="toast-icon"><CheckCircle size={16} /></div>
-        <div className="toast-body"><h4>Success</h4><p>{msg}</p></div>
+      <div className={`toast ${type}`}>
+        <div className="toast-icon">{type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}</div>
+        <div className="toast-body"><h4>{type === 'success' ? 'Success' : 'Error'}</h4><p>{msg}</p></div>
       </div>
     </div>
   );
 }
 
 export default function DivisionsPage() {
-  const [divisions, setDivisions]   = useState(INITIAL_DIVISIONS);
-  const [showModal, setShowModal]   = useState(false);
+  const [divisions, setDivisions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
-  const [toast, setToast]           = useState(null);
-  const [form, setForm]             = useState({ name: '', students: 0, sessions: 0, attendance: 80 });
+  const [toast, setToast] = useState(null);
+  const [form, setForm] = useState({ name: '', description: '' });
 
-  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2800); };
+  const fetchDivisionsWithStats = async () => {
+    try {
+      setLoading(true);
+      // 1. Fetch all divisions
+      const divData = await apiFetch('/divisions');
+      const divList = divData.data.results || divData.data.divisions || [];
+      
+      // 2. Fetch stats for each division (Parallel)
+      const enriched = await Promise.all(divList.map(async (div) => {
+        try {
+          const stats = await apiFetch(`/divisions/${div._id}/stats`);
+          return { ...div, ...stats.data };
+        } catch {
+          return { ...div, totalStudents: 0, totalSessions: 0, averageAttendance: 0 };
+        }
+      }));
+
+      setDivisions(enriched);
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDivisionsWithStats();
+  }, []);
+
+  const showToast = (msg, type = 'success') => { 
+    setToast({ msg, type }); 
+    setTimeout(() => setToast(null), 3000); 
+  };
 
   const openAdd = () => {
-    setForm({ name: '', students: 0, sessions: 0, attendance: 80 });
+    setForm({ name: '', description: '' });
     setEditTarget(null);
     setShowModal(true);
   };
 
   const openEdit = (div) => {
-    setForm({ name: div.name, students: div.students, sessions: div.sessions, attendance: div.attendance });
-    setEditTarget(div.id);
+    setForm({ name: div.name, description: div.description || '' });
+    setEditTarget(div._id);
     setShowModal(true);
   };
 
-  const handleDelete = (id) => {
-    setDivisions(prev => prev.filter(d => d.id !== id));
-    showToast('Division removed successfully.');
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this division? This may affect assigned users.')) return;
+    try {
+      await apiFetch(`/divisions/${id}`, { method: 'DELETE' });
+      setDivisions(prev => prev.filter(d => d._id !== id));
+      showToast('Division removed successfully.');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name) return;
-    if (editTarget) {
-      setDivisions(prev => prev.map(d => d.id === editTarget ? { ...d, ...form } : d));
-      showToast('Division updated successfully.');
-    } else {
-      setDivisions(prev => [...prev, { id: Date.now(), ...form, status: 'Active' }]);
-      showToast('Division added successfully.');
+    try {
+      if (editTarget) {
+        await apiFetch(`/divisions/${editTarget}`, {
+          method: 'PATCH',
+          body: JSON.stringify(form)
+        });
+        showToast('Division updated successfully.');
+      } else {
+        await apiFetch('/divisions', {
+          method: 'POST',
+          body: JSON.stringify(form)
+        });
+        showToast('Division added successfully.');
+      }
+      setShowModal(false);
+      fetchDivisionsWithStats(); // Refresh stats
+    } catch (err) {
+      showToast(err.message, 'error');
     }
-    setShowModal(false);
   };
 
   return (
     <div>
-      {toast && <Toast msg={toast} />}
+      {toast && <Toast msg={toast.msg} type={toast.type} />}
 
       <div className="card">
         <div className="card-header">
           <h2>Division Management</h2>
-          <button className="btn btn-primary" id="add-division-btn" onClick={openAdd}>
+          <button className="btn btn-primary" onClick={openAdd}>
             <Plus size={16} />
             Add Division
           </button>
         </div>
 
         <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Division</th>
-                <th>Students</th>
-                <th>Sessions</th>
-                <th>Attendance</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {divisions.map(div => (
-                <tr key={div.id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <DivIcon name={div.name} />
-                      <span style={{ fontWeight: 600 }}>{div.name}</span>
-                    </div>
-                  </td>
-                  <td style={{ color: 'var(--primary)', fontWeight: 600 }}>{div.students}</td>
-                  <td style={{ color: 'var(--info)', fontWeight: 600 }}>{div.sessions}</td>
-                  <td><AttendanceBadge value={div.attendance} /></td>
-                  <td>
-                    <div className="table-actions">
-                      <button
-                        id={`edit-div-${div.id}`}
-                        className="action-btn action-btn-edit"
-                        onClick={() => openEdit(div)}
-                        title="Edit"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        id={`delete-div-${div.id}`}
-                        className="action-btn action-btn-delete"
-                        onClick={() => handleDelete(div.id)}
-                        title="Delete"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
+          {loading ? (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Loading divisions & stats...</div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Division</th>
+                  <th>Students</th>
+                  <th>Sessions</th>
+                  <th>Attendance</th>
+                  <th>Rating</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {divisions.map(div => (
+                  <tr key={div._id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <DivIcon />
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{div.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{div.description}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ color: 'var(--primary)', fontWeight: 600 }}>{div.totalStudents}</td>
+                    <td style={{ color: 'var(--info)', fontWeight: 600 }}>{div.totalSessions}</td>
+                    <td><AttendanceBadge value={div.averageAttendance} /></td>
+                    <td style={{ fontWeight: 600 }}>⭐ {div.averageRating || 0}</td>
+                    <td>
+                      <div className="table-actions">
+                        <button className="action-btn action-btn-edit" onClick={() => openEdit(div)} title="Edit"><Pencil size={14} /></button>
+                        <button className="action-btn action-btn-delete" onClick={() => handleDelete(div._id)} title="Delete"><Trash2 size={14} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
-      {/* Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
           <div className="modal">
@@ -159,52 +197,27 @@ export default function DivisionsPage() {
               <div className="form-group">
                 <label>Division Name</label>
                 <input
-                  id="div-name-input"
                   className="form-input"
                   placeholder="e.g. Data Science"
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 />
               </div>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>Total Students</label>
-                  <input
-                    id="div-students-input"
-                    className="form-input"
-                    type="number"
-                    min={0}
-                    value={form.students}
-                    onChange={e => setForm(f => ({ ...f, students: parseInt(e.target.value) || 0 }))}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Total Sessions</label>
-                  <input
-                    id="div-sessions-input"
-                    className="form-input"
-                    type="number"
-                    min={0}
-                    value={form.sessions}
-                    onChange={e => setForm(f => ({ ...f, sessions: parseInt(e.target.value) || 0 }))}
-                  />
-                </div>
-              </div>
               <div className="form-group">
-                <label>Avg Attendance (%)</label>
-                <input
-                  id="div-attendance-input"
+                <label>Description</label>
+                <textarea
                   className="form-input"
-                  type="number"
-                  min={0} max={100}
-                  value={form.attendance}
-                  onChange={e => setForm(f => ({ ...f, attendance: parseInt(e.target.value) || 0 }))}
+                  rows={3}
+                  placeholder="Briefly describe this bootcamp track..."
+                  value={form.description}
+                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                  style={{ resize: 'none', padding: '10px' }}
                 />
               </div>
             </div>
             <div className="modal-actions">
               <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="btn btn-primary" id="save-div-btn" onClick={handleSave}>
+              <button className="btn btn-primary" onClick={handleSave}>
                 {editTarget ? 'Save Changes' : 'Add Division'}
               </button>
             </div>

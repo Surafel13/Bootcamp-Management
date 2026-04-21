@@ -1,109 +1,57 @@
-import React, { useState } from 'react';
-import { FileText, Video, ExternalLink, Download, BookOpen, Filter } from 'lucide-react';
-
-const RESOURCES = [
-  {
-    id: 1,
-    title: 'React Fundamentals Guide',
-    type: 'PDF',
-    size: '2.4 MB',
-    category: 'Development',
-    description: 'Complete guide to React basics, hooks, and advanced concepts',
-    date: 'Apr 10, 2026',
-    url: '#'
-  },
-  {
-    id: 2,
-    title: 'Tailwind CSS Documentation',
-    type: 'Link',
-    category: 'Development',
-    description: 'Official Tailwind CSS documentation and examples',
-    date: 'Apr 9, 2026',
-    url: 'https://tailwindcss.com'
-  },
-  {
-    id: 3,
-    title: 'JavaScript Advanced Patterns',
-    type: 'PDF',
-    size: '5.1 MB',
-    category: 'Development',
-    description: 'Advanced JavaScript design patterns and best practices',
-    date: 'Apr 8, 2026',
-    url: '#'
-  },
-  {
-    id: 4,
-    title: 'Design System Components',
-    type: 'PDF',
-    size: '1.2 MB',
-    category: 'Design',
-    description: 'Complete UI component library and design guidelines',
-    date: 'Apr 7, 2026',
-    url: '#'
-  },
-  {
-    id: 5,
-    title: 'Session Recordings - Week 1',
-    type: 'Video',
-    size: '245 MB',
-    category: 'Video',
-    description: 'Full recorded sessions from Week 1 of the bootcamp',
-    date: 'Apr 6, 2026',
-    url: '#'
-  },
-  {
-    id: 6,
-    title: 'API Integration Best Practices',
-    type: 'PDF',
-    size: '3.8 MB',
-    category: 'Development',
-    description: 'REST APIs, authentication, and error handling guide',
-    date: 'Apr 5, 2026',
-    url: '#'
-  },
-];
+import React, { useState, useEffect } from 'react';
+import { FileText, Video, ExternalLink, Download, BookOpen, Search } from 'lucide-react';
+import apiFetch from '../../utils/api';
 
 export default function Resources() {
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [resources, setResources] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredResources = RESOURCES
-    .filter(resource => {
-      const matchesSearch = resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           resource.description.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      if (activeFilter === 'All') return matchesSearch;
-      if (activeFilter === 'PDF') return resource.type === 'PDF' && matchesSearch;
-      if (activeFilter === 'Video') return resource.type === 'Video' && matchesSearch;
-      if (activeFilter === 'Link') return resource.type === 'Link' && matchesSearch;
-      return matchesSearch;
-    });
+  useEffect(() => {
+    const fetchResources = async () => {
+      try {
+        const data = await apiFetch('/resources');
+        setResources(data.data.resources || []);
+      } catch (err) {
+        console.error('Failed to fetch resources:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchResources();
+  }, []);
+
+  const filteredResources = resources.filter(resource => {
+    const matchesSearch = resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (resource.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+    if (activeFilter === 'All') return matchesSearch;
+    return resource.type?.toLowerCase() === activeFilter.toLowerCase() && matchesSearch;
+  });
 
   const getTypeIcon = (type) => {
-    switch (type) {
-      case 'PDF': return <FileText size={22} />;
-      case 'Video': return <Video size={22} />;
-      case 'Link': return <ExternalLink size={22} />;
+    switch (type?.toLowerCase()) {
+      case 'pdf': return <FileText size={22} />;
+      case 'video': return <Video size={22} />;
+      case 'link': return <ExternalLink size={22} />;
       default: return <BookOpen size={22} />;
     }
   };
 
   const getTypeColor = (type) => {
-    switch (type) {
-      case 'PDF': return 'var(--danger)';
-      case 'Video': return 'var(--primary)';
-      case 'Link': return 'var(--info)';
+    switch (type?.toLowerCase()) {
+      case 'pdf': return 'var(--danger)';
+      case 'video': return 'var(--primary)';
+      case 'link': return '#0984e3';
       default: return 'var(--text-secondary)';
     }
   };
 
-  const handleAction = (resource) => {
-    if (resource.type === 'Link') {
-      window.open(resource.url, '_blank');
-    } else {
-      alert(`Downloading: ${resource.title} (${resource.size})`);
-      // In real app: trigger file download
-    }
+  const handleAction = async (resource) => {
+    try {
+      await apiFetch(`/resources/${resource._id}/download`, { method: 'POST' });
+    } catch (err) { /* silent - still open */ }
+    if (resource.url) window.open(resource.url, '_blank');
   };
 
   return (
@@ -139,21 +87,20 @@ export default function Resources() {
         </div>
       </div>
 
-      {/* Resources Grid */}
+      {loading ? (
+        <div style={{ padding: 40, textAlign: 'center' }}>Loading resources...</div>
+      ) : (
       <div style={{ display: 'grid', gap: '16px' }}>
         {filteredResources.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', padding: '60px 20px' }}>
-            <p style={{ color: 'var(--text-secondary)' }}>No resources found matching your criteria.</p>
+            <p style={{ color: 'var(--text-secondary)' }}>No resources found.</p>
           </div>
         ) : (
           filteredResources.map((resource) => (
-            <div 
-              key={resource.id} 
+            <div
+              key={resource._id}
               className="card"
-              style={{ 
-                padding: '20px',
-                transition: 'var(--transition)',
-              }}
+              style={{ padding: '20px', transition: 'var(--transition)' }}
             >
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px' }}>
                 {/* Icon */}
@@ -206,22 +153,10 @@ export default function Resources() {
                     {resource.description}
                   </p>
 
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '16px',
-                    fontSize: '0.85rem',
-                    color: 'var(--text-muted)'
-                  }}>
-                    <span>{resource.category}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    <span>{resource.division?.name || resource.type}</span>
                     <span>•</span>
-                    <span>{resource.date}</span>
-                    {resource.size && (
-                      <>
-                        <span>•</span>
-                        <span>{resource.size}</span>
-                      </>
-                    )}
+                    <span>{new Date(resource.createdAt || Date.now()).toLocaleDateString()}</span>
                   </div>
                 </div>
 
@@ -252,6 +187,7 @@ export default function Resources() {
           ))
         )}
       </div>
+      )}
 
       {/* Info Footer */}
       <div style={{ 

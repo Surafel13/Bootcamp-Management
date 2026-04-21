@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import './index.css';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
@@ -61,7 +62,9 @@ function SuperAdminDashboard() {
 }
 
 function AppInner() {
-  const { user, role } = useAuth();
+  const { user, loading } = useAuth();
+
+  if (loading) return <div>Loading...</div>;
 
   if (!user) {
     return (
@@ -72,15 +75,20 @@ function AppInner() {
     );
   }
 
-  if (role === 'Instructor') {
+  // Handle Multiple Roles - Priority Order
+  if (user.roles.includes('super_admin')) {
+    return <SuperAdminDashboard />;
+  }
+
+  if (user.roles.includes('division_admin')) {
     return <InstructorDashboard />;
   }
 
-  if (role === 'Student') {
+  if (user.roles.includes('student')) {
     return <StudentDashboard />;
   }
 
-  return <SuperAdminDashboard />;
+  return <Navigate to="/login" replace />;
 }
 
 export default function App() {

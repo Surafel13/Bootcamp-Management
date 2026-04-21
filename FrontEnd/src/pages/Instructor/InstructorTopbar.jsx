@@ -4,15 +4,16 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
 const PAGE_META = {
-  sessions:      { title: 'Instructor Dashboard', sub: 'Manage bootcamp sessions and academic activities' },
-  attendance:    { title: 'Instructor Dashboard', sub: 'Manage bootcamp sessions and academic activities' },
-  resources:     { title: 'Instructor Dashboard', sub: 'Manage bootcamp sessions and academic activities' },
-  tasks:         { title: 'Instructor Dashboard', sub: 'Manage bootcamp sessions and academic activities' },
-  submissions:   { title: 'Instructor Dashboard', sub: 'Manage bootcamp sessions and academic activities' },
-  feedback:      { title: 'Instructor Dashboard', sub: 'Manage bootcamp sessions and academic activities' },
-  students:      { title: 'Instructor Dashboard', sub: 'Manage bootcamp sessions and academic activities' },
-  groups:        { title: 'Instructor Dashboard', sub: 'Manage bootcamp sessions and academic activities' },
-  qrcode:        { title: 'Instructor Dashboard', sub: 'Generate QR codes for session check-in' },
+  overview:      { title: 'Division Admin Dashboard', sub: 'Performance metrics and division overview' },
+  sessions:      { title: 'Division Admin Dashboard', sub: 'Manage bootcamp sessions and academic activities' },
+  attendance:    { title: 'Division Admin Dashboard', sub: 'Manage bootcamp sessions and academic activities' },
+  resources:     { title: 'Division Admin Dashboard', sub: 'Manage bootcamp sessions and academic activities' },
+  tasks:         { title: 'Division Admin Dashboard', sub: 'Manage bootcamp sessions and academic activities' },
+  submissions:   { title: 'Division Admin Dashboard', sub: 'Manage bootcamp sessions and academic activities' },
+  feedback:      { title: 'Division Admin Dashboard', sub: 'Manage bootcamp sessions and academic activities' },
+  students:      { title: 'Division Admin Dashboard', sub: 'Manage bootcamp sessions and academic activities' },
+  groups:        { title: 'Division Admin Dashboard', sub: 'Manage bootcamp sessions and academic activities' },
+  qrcode:        { title: 'Division Admin Dashboard', sub: 'Generate QR codes for session check-in' },
   notifications: { title: 'Notifications',            sub: 'Stay updated with system alerts' },
   profile:       { title: 'My Profile',               sub: 'Manage your account preferences' },
   settings:      { title: 'Settings',                 sub: 'Configure system preferences' },
@@ -62,8 +63,8 @@ export default function InstructorTopbar({ activePage }) {
         <div className="user-dropdown">
           <div className="user-profile" onClick={() => setShowDropdown(!showDropdown)}>
             <div className="user-info">
-              <h4>{user?.name || 'Dr. Sarah Mitchell'}</h4>
-              <p>{user?.role || 'Lead Instructor'}</p>
+              <h4>{user?.name || 'Division Admin'}</h4>
+              <p>{user?.role?.replace('_', ' ') || 'Division Lead'}</p>
             </div>
             <div className="avatar">
               {user?.initials || 'SM'}

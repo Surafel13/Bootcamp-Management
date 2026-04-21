@@ -55,10 +55,11 @@ export const generateQR = catchAsync(async (req: Request, res: Response, next: N
 
 export const scanQR = catchAsync(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const { qrToken, studentId } = req.body;
+		const { qrToken } = req.body;
+		const studentId = req.user!._id;
 
-		if (!qrToken || !studentId) {
-			return next(new AppError("Missing qrToken or studentId", 400));
+		if (!qrToken) {
+			return next(new AppError("Missing qrToken", 400));
 		}
 
 		// 1. Check if token was used
