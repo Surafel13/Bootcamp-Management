@@ -18,6 +18,8 @@ import FeedbackPage from './pages/FeedbackPage.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 import InstructorDashboard from './pages/Instructor/InstructorDashboard.jsx';
 import StudentDashboard from './pages/Student/StudentDashboard.jsx';
@@ -67,6 +69,8 @@ function AppInner() {
     return (
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );

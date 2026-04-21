@@ -93,7 +93,9 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="login-forgot">Forgot password?</div>
+          <div className="login-forgot" >
+            <a href="/forgot-password">Forgot password?</a>
+          </div>
 
           {error && (
             <div style={{
