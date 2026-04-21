@@ -36,22 +36,101 @@ JWT_QR_SECRET=your_super_secret_qr_key
 
 ## 4. API Routes Documentation
 
-### Auth
-- `POST /api/auth/login` - Authenticate and retrieve token.
+### Health Check
+- `GET /health` - Basic health check endpoint (public).
+
+### Authentication
+- `POST /api/auth/login` - Authenticate user and retrieve JWT token (rate limited).
+- `POST /api/auth/refresh` - Refresh JWT token.
+- `POST /api/auth/forgot-password` - Request password reset.
+- `PATCH /api/auth/reset-password/:token` - Reset password with token.
+- `POST /api/auth/logout` - Logout user.
+
+### Users
+- `GET /api/users/me` - Get current user profile.
+- `POST /api/users` - Create new user (Super Admin only).
+- `GET /api/users` - Get all users (Super Admin only).
+- `GET /api/users/:id` - Get user by ID (Super Admin only).
+- `PATCH /api/users/:id` - Update user (Super Admin only).
+- `PATCH /api/users/:id/status` - Update user status (Super Admin only).
+- `PATCH /api/users/:id/divisions` - Update user divisions (Super Admin only).
+- `DELETE /api/users/:id` - Delete user (Super Admin only).
+
+### Divisions
+- `GET /api/divisions` - Get all divisions (public).
+- `GET /api/divisions/:id` - Get division by ID (public).
+- `GET /api/divisions/:id/stats` - Get division statistics (public).
+- `POST /api/divisions` - Create new division (Super Admin only).
+- `PATCH /api/divisions/:id` - Update division (Super Admin only).
+- `DELETE /api/divisions/:id` - Delete division (Super Admin only).
 
 ### Sessions
-- `GET /api/sessions` - Get all sessions (filtered by scope/permissions).
-- `POST /api/sessions` - Create a new session.
+- `POST /api/sessions` - Create new session (Division Admin/Super Admin only).
+- `GET /api/sessions` - Get all sessions (filtered by permissions).
+- `GET /api/sessions/:id` - Get session by ID.
+- `PATCH /api/sessions/:id` - Update session (Division Admin/Super Admin only).
+- `DELETE /api/sessions/:id` - Cancel session (Division Admin/Super Admin only).
+- `GET /api/sessions/:id/attendance` - Get attendance for session (Division Admin/Super Admin only).
+- `POST /api/sessions/:sessionId/generate-qr` - Generate QR code for session (Division Admin/Super Admin only).
 
-### QR Attendance
-- `POST /api/attendance/qr/generate/:sessionId` 
-  - Generates a fresh QR token for the specified session. Token naturally expires in 13 seconds.
-- `POST /api/attendance/qr/scan`
-  - Validates a scanned QR token and marks the corresponding student conditionally (must not have expired, must not be used).
+### Attendance
+- `POST /api/attendance/scan` - Student scans QR code (Student only, IP range check required).
+- `GET /api/attendance` - Get all attendance records (Division Admin/Super Admin only).
+- `GET /api/attendance/session/:sessionId` - Get attendance for specific session (Division Admin/Super Admin only).
+- `GET /api/attendance/me` - Get current student's attendance history (Student only).
+- `POST /api/attendance/mark` - Manual attendance marking (Division Admin/Super Admin only).
+- `PATCH /api/attendance/manual/:id` - Manual attendance update (Division Admin/Super Admin only).
 
-### Attendance Information
-- `GET /api/attendance/session/:sessionId` - Get all attendance records for a single session.
-- `GET /api/attendance/student/:studentId` - Get personal attendance history for a specific student.
+### Tasks
+- `GET /api/tasks` - Get all tasks (filtered by permissions).
+- `GET /api/tasks/:id` - Get task by ID.
+- `POST /api/tasks` - Create new task (Division Admin/Super Admin only).
+- `PATCH /api/tasks/:id` - Update task (Division Admin/Super Admin only).
+- `DELETE /api/tasks/:id` - Delete task (Division Admin/Super Admin only).
+
+### Submissions
+- `POST /api/submissions` - Submit task (Student only).
+- `GET /api/submissions/me` - Get current user's submissions (Student only).
+- `GET /api/submissions/:id` - Get submission by ID.
+- `GET /api/submissions` - Get all submissions (Division Admin/Super Admin only).
+- `GET /api/submissions/task/:taskId` - Get submissions for specific task (Division Admin/Super Admin only).
+- `PATCH /api/submissions/:submissionId/grade` - Grade submission (Division Admin/Super Admin only).
+
+### Resources
+- `GET /api/resources` - Get all resources (filtered by permissions).
+- `GET /api/resources/:id` - Get resource by ID.
+- `POST /api/resources/:id/download` - Track resource download.
+- `POST /api/resources` - Create new resource (Division Admin/Super Admin only).
+- `DELETE /api/resources/:id` - Delete resource (Division Admin/Super Admin only).
+
+### Feedback
+- `POST /api/feedback` - Submit feedback (Student only).
+- `GET /api/feedback/me` - Get current user's feedback (Student only).
+- `GET /api/feedback/session/:sessionId` - Get feedback for session (Division Admin/Super Admin only).
+
+### Groups
+- `GET /api/groups` - Get all groups (filtered by permissions).
+- `GET /api/groups/:id` - Get group by ID.
+- `POST /api/groups` - Create new group (Division Admin/Super Admin only).
+- `PATCH /api/groups/:id` - Update group (Division Admin/Super Admin only).
+- `POST /api/groups/:id/members` - Add member to group (Division Admin/Super Admin only).
+- `DELETE /api/groups/:id/members/:userId` - Remove member from group (Division Admin/Super Admin only).
+
+### Progress
+- `POST /api/progress` - Submit progress update (Student only).
+- `GET /api/progress/me` - Get current user's progress (Student only).
+- `GET /api/progress` - Get all progress records (Division Admin/Super Admin only).
+- `GET /api/progress/group/:groupId` - Get progress for specific group (Division Admin/Super Admin only).
+
+### Notifications
+- `GET /api/notifications` - Get current user's notifications.
+- `PATCH /api/notifications/:id/read` - Mark notification as read.
+- `PATCH /api/notifications/read-all` - Mark all notifications as read.
+
+### Reports
+- `GET /api/reports/attendance` - Get attendance report (Super Admin only).
+- `GET /api/reports/tasks` - Get task report (Super Admin only).
+- `GET /api/reports/feedback` - Get feedback report (Super Admin only).
 
 ## 5. QR Logic Explanation
 
