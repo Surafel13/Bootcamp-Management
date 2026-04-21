@@ -3,18 +3,96 @@ import bcrypt from "bcrypt";
 import User from "../models/user.model.js";
 import catchAsync from "../utils/catchAsync.js";
 import AppError from "../utils/appError.js";
+import Division from "../models/division.model.js";
+import { createUserSchema } from "../utils/validators/user.validator.js";
+import {
+	generateRandomPassword,
+	sendWelcomeEmail
+} from "../queues/emailQueue.js";
+import logger from "../utils/logger.js";
 
 // Admin creates a user (no self-registration per SRS §4.1)
 export const createUser = catchAsync(async (req: Request, res: Response) => {
-	const { name, email, password, roles, divisions, status } = req.body;
+	const validationResult = createUserSchema.safeParse(req.body);
 
-	const user = await User.create({ name, email, password, roles, divisions, status });
+	if (!validationResult.success) {
+		return res.status(400).json({
+			status: "error",
+			message: "Validation failed",
+			errors: validationResult.error.issues.map(err => ({
+				field: err.path.join("."),
+				message: err.message
+			}))
+		});
+	}
 
-	// Hide password in response
-	const userResponse = { ...user.toObject() } as any;
+	const { name, email, roles, memberships, status } = validationResult.data;
+
+	const existingUser = await User.findOne({ email });
+
+	if (existingUser) {
+		return res.status(400).json({
+			status: "error",
+			message: "User with this email already exists"
+		});
+	}
+
+	if (memberships.length > 0) {
+		const divisionIds = memberships.map(m => m.division);
+		const divisions = await Division.find({ _id: { $in: divisionIds } });
+
+		if (divisions.length !== divisionIds.length) {
+			const foundDivisionIds = divisions.map(d => d._id.toString());
+			const missingDivisions = divisionIds.filter(id => !foundDivisionIds.includes(id));
+
+			return res.status(400).json({
+				status: "error",
+				message: `Divisions not found: ${missingDivisions.join(", ")}`
+			});
+		}
+	}
+
+	const plainTextPassword = generateRandomPassword(12);
+
+	const hashedPassword = await bcrypt.hash(plainTextPassword, 12);
+
+	const user = await User.create({
+		name,
+		email,
+		password: hashedPassword,
+		roles,
+		memberships,
+		status,
+		isPasswordChanged: false
+	});
+
+	try {
+		await sendWelcomeEmail(email, name, plainTextPassword);
+		logger.info(`Welcome email queued for ${email}`);
+	} catch (emailError) {
+		logger.error(`Failed to queue email for ${email}: ${emailError}`);
+	}
+
+	let userResponse = user.toObject() as any;
+
 	delete userResponse.password;
+	delete userResponse.isPasswordChanged;
 
-	res.status(201).json({ status: "success", data: { user: userResponse } });
+	if (memberships.length > 0) {
+		const populatedUser = await User.findById(user._id)
+			.populate("memberships.division", "name code description");
+		userResponse = populatedUser?.toObject() as any;
+		delete userResponse.password;
+		delete userResponse.isPasswordChanged;
+	}
+
+	res.status(201).json({
+		status: "success",
+		data: {
+			user: userResponse,
+			message: "User created successfully. Credentials have been sent to their email."
+		}
+	});
 });
 
 // Admin lists all users with optional filters
@@ -22,17 +100,9 @@ export const getAllUsers = catchAsync(async (req: Request, res: Response) => {
 	const { role, status, division } = req.query;
 
 	const filter: Record<string, any> = {};
-	
-	// Division Locking Logic:
-	const isSuperAdmin = req.user!.roles.includes("super_admin");
-	if (!isSuperAdmin) {
-		filter.divisions = { $in: req.user!.divisions };
-	} else if (division) {
-		filter.divisions = { $in: [division] };
-	}
-
 	if (role) filter.roles = role;
 	if (status) filter.status = status;
+	if (division) filter.divisions = { $in: [division] };
 
 	const users = await User.find(filter as any).populate("divisions", "name");
 
@@ -69,12 +139,7 @@ export const updateUser = catchAsync(
 
 		const user = await User.findByIdAndUpdate(
 			req.params.id,
-			{ 
-				name: req.body.name, 
-				email: req.body.email,
-				roles: req.body.roles,
-				divisions: req.body.divisions
-			},
+			{ name: req.body.name, email: req.body.email },
 			{ new: true, runValidators: true },
 		).populate("divisions", "name");
 
