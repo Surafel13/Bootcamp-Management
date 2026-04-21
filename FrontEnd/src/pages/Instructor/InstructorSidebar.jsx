@@ -22,7 +22,8 @@ const NAV = [
 ];
 
 export default function InstructorSidebar({ active, onNavigate, isCollapsed, onToggle }) {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const divisionName = user?.divisions?.[0]?.name || 'Division';
 
   return (
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
@@ -33,13 +34,13 @@ export default function InstructorSidebar({ active, onNavigate, isCollapsed, onT
         </button>
         {!isCollapsed && (
           <div className="sidebar-logo-text" style={{ marginLeft: 12 }}>
-            <h2>Bootcamp MS</h2>
-            <span>Division Admin Portal</span>
+            <h2 style={{ fontSize: '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{divisionName} Portal</h2>
+            <span>Bootcamp MS</span>
           </div>
         )}
       </div>
 
-      {/* Nav */}
+      {/* ... (rest of nav) */}
       <nav className="sidebar-nav">
         {NAV.map(({ key, label, icon: Icon }) => (
           <button
@@ -67,12 +68,12 @@ export default function InstructorSidebar({ active, onNavigate, isCollapsed, onT
         </button>
       </nav>
 
-      {/* Simplified Division Box */}
+      {/* Dynamic Division Box */}
       {!isCollapsed && (
         <div className="sidebar-status" style={{ background: 'transparent', border: 'none', padding: '12px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', animation: 'pulse-dot 2s infinite' }} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase' }}>Developmental</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase' }}>{divisionName} Live</span>
           </div>
         </div>
       )}

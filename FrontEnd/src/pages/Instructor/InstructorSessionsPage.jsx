@@ -42,16 +42,19 @@ function QRModal({ sessionId, onClose }) {
   const [qrToken, setQrToken] = useState('');
   const [timeLeft, setTimeLeft] = useState(13);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const getQR = async () => {
     try {
       setLoading(true);
+      setError('');
       const data = await apiFetch(`/sessions/${sessionId}/generate-qr`, { method: 'POST' });
       setQrToken(data.qrToken);
       setTimeLeft(13);
       setLoading(false);
     } catch (err) {
-      console.error(err);
+      setError(err.message);
+      setLoading(false);
     }
   };
 
@@ -70,7 +73,7 @@ function QRModal({ sessionId, onClose }) {
   }, [sessionId]);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div className="modal" style={{ maxWidth: 400, textAlign: 'center', borderRadius: 24 }} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Attendance QR Code</h2>
@@ -79,19 +82,26 @@ function QRModal({ sessionId, onClose }) {
         <div style={{ padding: 20 }}>
           {loading ? (
             <div style={{ height: 250, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Generating...</div>
-          ) : (
-            <div style={{ background: 'white', padding: 20, borderRadius: 16, display: 'inline-block', marginBottom: 20 }}>
-              {/* Using a placeholder service for visual demo, but real token is embedded */}
-              <img 
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrToken}`} 
-                alt="Attendance QR" 
-                style={{ width: 200, height: 200 }}
-              />
+          ) : error ? (
+            <div style={{ height: 250, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--danger)', padding: 20 }}>
+               <AlertCircle size={48} style={{ marginBottom: 16 }} />
+               <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>{error}</p>
+               <button className="btn btn-secondary" style={{ marginTop: 20 }} onClick={getQR}>Try Again</button>
             </div>
+          ) : (
+            <>
+              <div style={{ background: 'white', padding: 20, borderRadius: 16, display: 'inline-block', marginBottom: 20 }}>
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrToken}`} 
+                  alt="Attendance QR" 
+                  style={{ width: 200, height: 200 }}
+                />
+              </div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary)' }}>
+                Refreshing in {timeLeft}s
+              </div>
+            </>
           )}
-          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary)' }}>
-            Refreshing in {timeLeft}s
-          </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: 10 }}>
             Students should scan this using their dashboard.
           </p>
@@ -109,7 +119,7 @@ export default function InstructorSessionsPage() {
   const [qrTarget, setQrTarget] = useState(null);
   const [editId, setEditId] = useState(null);
   const [toast, setToast] = useState(null);
-  const [form, setForm] = useState({ title:'', startTime:'', endTime:'', location:'Room 101', status:'upcoming', division: '' });
+  const [form, setForm] = useState({ title:'', startTime:'', endTime:'', location:'Room 101', status:'upcoming', division: '', instructor: '' });
 
   const fetchSessions = async () => {
     try {
@@ -139,7 +149,8 @@ export default function InstructorSessionsPage() {
       endTime: '', 
       location:'Room 101', 
       status:'upcoming',
-      division: user.divisions[0]?._id || user.divisions[0] || ''
+      division: user.divisions[0]?._id || user.divisions[0] || '',
+      instructor: user._id
     }); 
     setEditId(null); 
     setShowModal(true); 
@@ -259,7 +270,7 @@ export default function InstructorSessionsPage() {
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div className="modal-overlay">
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{editId ? 'Edit Session' : 'Create New Session'}</h2>

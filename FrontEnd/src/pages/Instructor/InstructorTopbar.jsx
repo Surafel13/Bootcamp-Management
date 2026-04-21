@@ -25,12 +25,15 @@ export default function InstructorTopbar({ activePage }) {
   const [showDropdown, setShowDropdown] = useState(false);
 
   const meta = PAGE_META[activePage] || PAGE_META.sessions;
+  const divisionName = user?.divisions?.[0]?.name || 'Division';
+  const isGenericPage = ['notifications', 'profile', 'settings'].includes(activePage);
+  const displayTitle = isGenericPage ? meta.title : `${divisionName} Division Dashboard`;
 
   return (
     <header className="topbar">
       <div style={{ flex: 1, paddingLeft: 0 }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
-          {meta.title}
+          {displayTitle}
         </h1>
         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{meta.sub}</p>
       </div>
@@ -64,7 +67,7 @@ export default function InstructorTopbar({ activePage }) {
           <div className="user-profile" onClick={() => setShowDropdown(!showDropdown)}>
             <div className="user-info">
               <h4>{user?.name || 'Division Admin'}</h4>
-              <p>{user?.role?.replace('_', ' ') || 'Division Lead'}</p>
+              <p>{divisionName} Admin</p>
             </div>
             <div className="avatar">
               {user?.initials || 'SM'}

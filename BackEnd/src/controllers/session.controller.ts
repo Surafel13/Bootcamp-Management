@@ -248,8 +248,25 @@ export const getSessionAttendance = catchAsync(
 );
 
 // QR Generation (moved here from attendance controller)
-export const generateQR = catchAsync(async (req: Request, res: Response) => {
+export const generateQR = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 	const { sessionId } = req.params;
+	
+	const session = await Session.findById(sessionId);
+	if (!session) return next(new AppError("Session not found", 404));
+
+	const now = new Date();
+	const startTime = new Date(session.startTime);
+	const endTime = new Date(session.endTime);
+
+	// Security Gate: Allow generation from 5 mins before start until session end
+	if (now.getTime() < startTime.getTime() - 5 * 60 * 1000) {
+		return next(new AppError("QR generation is only allowed 5 minutes before the session starts.", 400));
+	}
+
+	if (now.getTime() > endTime.getTime()) {
+		return next(new AppError("This session has already ended. Cannot generate QR.", 400));
+	}
+
 	const qrSecret = crypto.randomBytes(16).toString("hex");
 
 	const token = jwt.sign({ sessionId, qrSecret }, env.JWT_QR_SECRET || "qr_scrt", {

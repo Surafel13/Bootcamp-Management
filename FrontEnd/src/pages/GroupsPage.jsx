@@ -135,7 +135,7 @@ export default function GroupsPage() {
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
+        <div className="modal-overlay">
           <div className="modal" style={{ maxWidth: 500 }}>
             <div className="modal-header">
               <h2>Register New Group</h2>

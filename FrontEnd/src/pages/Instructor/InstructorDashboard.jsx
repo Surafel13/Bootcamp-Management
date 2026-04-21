@@ -7,6 +7,9 @@ import InstructorAttendancePage from './InstructorAttendancePage.jsx';
 import InstructorResourcesPage from './InstructorResourcesPage.jsx';
 import InstructorTasksPage from './InstructorTasksPage.jsx';
 import InstructorSubmissionsPage from './InstructorSubmissionsPage.jsx';
+import InstructorQRPage from './InstructorQRPage.jsx';
+import InstructorUsersPage from './InstructorUsersPage.jsx';
+import GroupsPage from '../GroupsPage.jsx';
 
 // Replace other empty pages with simple placeholders for now
 import FeedbackPage from '../FeedbackPage.jsx';
@@ -27,6 +30,9 @@ function InstructorDashboard() {
       case 'tasks':         return <InstructorTasksPage />;
       case 'submissions':   return <InstructorSubmissionsPage />;
       case 'feedback':      return <FeedbackPage />;
+      case 'students':      return <InstructorUsersPage />;
+      case 'groups':        return <GroupsPage />;
+      case 'qrcode':        return <InstructorQRPage />;
       case 'notifications': return <NotificationsPage />;
       case 'profile':       return <ProfilePage />;
       case 'settings':      return <SettingsPage />;

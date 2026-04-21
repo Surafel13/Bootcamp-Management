@@ -8,7 +8,13 @@ import AppError from "../utils/appError.js";
 export const createUser = catchAsync(async (req: Request, res: Response) => {
 	const { name, email, password, roles, divisions, status } = req.body;
 
+	// Backend Enforcement: Non-super_admins MUST have a division
+	if (!roles?.includes("super_admin") && (!divisions || divisions.length === 0)) {
+		return next(new AppError("Please assign at least one division to this user", 400, { divisions: "Required" }));
+	}
+
 	const user = await User.create({ name, email, password, roles, divisions, status });
+	await user.populate("divisions", "name");
 
 	// Hide password in response
 	const userResponse = { ...user.toObject() } as any;

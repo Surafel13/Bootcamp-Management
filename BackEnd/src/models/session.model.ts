@@ -14,7 +14,7 @@ const sessionSchema = new mongoose.Schema<ISession>({
 		ref: "Division",
 		required: true,
 	},
-	status: { type: String, enum: ["active", "cancelled"], default: "active" },
+	status: { type: String, enum: ["upcoming", "active", "completed", "cancelled"], default: "upcoming" },
 	createdAt: { type: Date, default: Date.now },
 });
 

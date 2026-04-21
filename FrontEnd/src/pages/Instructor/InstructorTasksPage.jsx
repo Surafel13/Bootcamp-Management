@@ -161,7 +161,7 @@ export default function InstructorTasksPage() {
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div className="modal-overlay">
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{editId ? 'Edit Task' : 'Create New Task'}</h2>

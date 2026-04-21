@@ -115,7 +115,15 @@ export const scanQR = catchAsync(
 			usedTokens.add(qrToken);
 			activeTokens.delete(qrToken);
 
-			res.status(200).json({ status: "success", message: "Attendance recorded", timestamp: new Date() });
+			res.status(200).json({ 
+				status: "success", 
+				message: `Attendance recorded as ${status.toUpperCase()}`,
+				data: {
+					status,
+					studentName: student.name,
+					timestamp: new Date()
+				}
+			});
 		} catch (err) {
 			return next(new AppError("Invalid token or QR expired", 400));
 		}

@@ -132,6 +132,12 @@ export default function UsersPage() {
 
   const handleSave = async () => {
     if (!form.name || !form.email) return;
+
+    // Division is mandatory for everyone except Super Admin
+    if (!form.roles.includes('super_admin') && (!form.divisions || form.divisions.length === 0)) {
+      showToast('Please select a division for this user.', 'error');
+      return;
+    }
     
     try {
       if (editTarget) {
@@ -233,7 +239,7 @@ export default function UsersPage() {
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
+        <div className="modal-overlay">
           <div className="modal" style={{ maxWidth: 600 }}>
             <div className="modal-header">
               <h2>{editTarget ? 'Edit User' : 'Add New User'}</h2>
@@ -241,31 +247,34 @@ export default function UsersPage() {
             </div>
             <div className="modal-form form-grid">
               <div className="form-group">
-                <label>Full Name</label>
+                <label>Full Name <span style={{ color: 'var(--danger)' }}>*</span></label>
                 <input className="form-input" placeholder="Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
               </div>
               <div className="form-group">
-                <label>Email Address</label>
+                <label>Email Address <span style={{ color: 'var(--danger)' }}>*</span></label>
                 <input className="form-input" type="email" placeholder="email@university.edu" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
               </div>
               {!editTarget && (
                 <div className="form-group" style={{ gridColumn: '1 / span 2' }}>
-                  <label>Password</label>
+                  <label>Password <span style={{ color: 'var(--danger)' }}>*</span></label>
                   <input className="form-input" type="password" placeholder="••••••••" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
                 </div>
               )}
               <div className="form-group">
-                <label>Primary Role</label>
+                <label>Primary Role <span style={{ color: 'var(--danger)' }}>*</span></label>
                 <select className="form-input" value={form.roles[0]} onChange={e => setForm(f => ({ ...f, roles: [e.target.value] }))}>
                   {ROLES.map(r => <option key={r} value={r}>{r.replace('_', ' ')}</option>)}
                 </select>
               </div>
               <div className="form-group">
-                <label>Division</label>
-                <select className="form-input" value={form.divisions[0] || ''} onChange={e => setForm(f => ({ ...f, divisions: [e.target.value] }))}>
+                <label>Division <span style={{ color: 'var(--danger)' }}>*</span></label>
+                <select className="form-input" value={form.divisions[0] || ''} onChange={e => setForm(f => ({ ...f, divisions: e.target.value ? [e.target.value] : [] }))} style={{ borderColor: (!form.roles.includes('super_admin') && form.divisions.length === 0) ? 'var(--danger)' : '' }}>
                   <option value="">Select Division</option>
                   {divisions.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
                 </select>
+                {!form.roles.includes('super_admin') && form.divisions.length === 0 && (
+                  <p style={{ color: 'var(--danger)', fontSize: '0.7rem', marginTop: 4 }}>Division is required for this role</p>
+                )}
               </div>
               <div className="form-group" style={{ gridColumn: '1 / span 2' }}>
                 <label>Status</label>
