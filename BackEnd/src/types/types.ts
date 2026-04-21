@@ -8,16 +8,27 @@ declare global {
 	}
 }
 
+export interface IMembership {
+  role: "division_admin" | "student";
+  division: Types.ObjectId;
+  joinedAt?: Date;
+}
+
 export interface IUser extends Document {
 	name: string;
 	email: string;
 	password: string;
 	roles: ("super_admin" | "division_admin" | "student")[];
+	firstLogin: boolean;
+	memberships: IMembership[];
 	divisions: Types.ObjectId[];
 	status: "active" | "suspended" | "graduated";
+	isPasswordChanged: boolean;
 	passwordResetToken?: string;
 	passwordResetExpires?: Date;
 	createdAt: Date;
+	getRoleInDivision?: (divisionId: string) => string | null;
+  isInDivision?: (divisionId: string) => boolean;
 	id: string;
 }
 
