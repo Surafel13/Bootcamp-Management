@@ -2,6 +2,11 @@ import mongoose from "mongoose";
 import type { ITask } from "../types/types.js";
 
 const taskSchema = new mongoose.Schema<ITask>({
+	bootcamp: {
+		type: mongoose.Schema.Types.ObjectId,
+		ref: "Bootcamp",
+		required: true,
+	},
 	title: { type: String, required: true },
 	description: { type: String, required: true },
 	deadline: { type: Date, required: true },
