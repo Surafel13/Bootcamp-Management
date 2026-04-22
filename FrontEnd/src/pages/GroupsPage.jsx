@@ -8,7 +8,7 @@ export default function GroupsPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [toast, setToast] = useState(null);
-  const [form, setForm] = useState({ name: '', division: '', leader: '' });
+  const [form, setForm] = useState({ name: '', division: '', leader: '', membersText: '' });
 
   const fetchData = async () => {
     try {
@@ -38,12 +38,26 @@ export default function GroupsPage() {
   const handleSave = async () => {
     if (!form.name || !form.division) return;
     try {
+      // Split member names by new line or comma
+      const memberNames = form.membersText
+        .split(/[\n,]/)
+        .map(name => name.trim())
+        .filter(name => name !== '');
+
+      const payload = {
+        name: form.name,
+        division: form.division,
+        leader: form.leader,
+        memberNames: memberNames
+      };
+
       const data = await apiFetch('/groups', {
         method: 'POST',
-        body: JSON.stringify(form)
+        body: JSON.stringify(payload)
       });
       setGroups(prev => [...prev, data.data.group]);
       setShowModal(false);
+      setForm({ name: '', division: '', leader: '', membersText: '' });
       showToast('Group registered successfully!');
     } catch (err) {
       showToast(err.message, 'error');
@@ -110,6 +124,15 @@ export default function GroupsPage() {
                     <td style={{ fontWeight: 700 }}>{g.name}</td>
                     <td>{g.division?.name || 'General'}</td>
                     <td style={{ color: 'var(--text-secondary)' }}>{g.leader || 'Not assigned'}</td>
+                    <td style={{ fontSize: '0.85rem' }}>
+                      {g.memberNames && g.memberNames.length > 0 ? (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          {g.memberNames.map((name, i) => (
+                            <span key={i} style={{ background: 'var(--bg-input)', padding: '2px 8px', borderRadius: '4px' }}>{name}</span>
+                          ))}
+                        </div>
+                      ) : 'No members'}
+                    </td>
                     <td>
                       <span style={{ 
                         padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700,
@@ -156,6 +179,16 @@ export default function GroupsPage() {
               <div className="form-group">
                 <label>Team Leader Name</label>
                 <input className="form-input" placeholder="Student Name" value={form.leader} onChange={e => setForm({...form, leader: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Group Members (One per line)</label>
+                <textarea 
+                  className="form-input" 
+                  rows={4} 
+                  placeholder="Enter student names..." 
+                  value={form.membersText} 
+                  onChange={e => setForm({...form, membersText: e.target.value})} 
+                />
               </div>
             </div>
             <div className="modal-actions" style={{ marginTop: 20 }}>

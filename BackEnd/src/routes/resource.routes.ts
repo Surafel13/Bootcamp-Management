@@ -7,6 +7,7 @@ import {
     trackDownload 
 } from "../controllers/resource.controller.js";
 import { protect, restrictTo } from "../middlewares/auth.middleware.js";
+import { upload } from "../middlewares/upload.middleware.js";
 
 const router: Router = Router();
 
@@ -19,7 +20,7 @@ router.post("/:id/download", trackDownload);
 // Instructors and Admins can manage resources
 router.use(restrictTo("division_admin", "super_admin"));
 
-router.post("/", createResource);
+router.post("/", upload.single("file"), createResource);
 router.delete("/:id", deleteResource);
 
 export default router;

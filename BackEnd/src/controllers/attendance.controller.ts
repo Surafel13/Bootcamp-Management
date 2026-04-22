@@ -15,6 +15,7 @@ interface TokenPayload extends jwt.JwtPayload {
 	sessionId: string;
 	qrSecret: string;
 	generationCount: number;
+	attendanceType: "present" | "late";
 }
 
 // Memory store for tokens (Use Redis for multi-server setups)
@@ -98,13 +99,8 @@ export const scanQR = catchAsync(
 				return next(new AppError("Already marked attendance", 400));
 			}
 
-			// 7. Calculate status based on generationCount
-			let status = "present";
-			if (decoded.generationCount === 2) {
-				status = "late";
-			} else if (decoded.generationCount > 2) {
-				return next(new AppError("Attendance window closed (Marked Absent)", 403));
-			}
+			// 7. Calculate status based on token data
+			const status = decoded.attendanceType || "present";
 
 			// 8. Create Attendance
 			await Attendance.create({

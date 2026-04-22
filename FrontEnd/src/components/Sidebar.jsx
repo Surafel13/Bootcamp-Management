@@ -7,14 +7,11 @@ import { useAuth } from '../context/AuthContext';
 const NAV_ITEMS = [
   { key: 'analytics',       label: 'System Analytics',    icon: BarChart2 },
   { key: 'users',           label: 'User Management',     icon: Users },
-  { key: 'groups',          label: 'Group Management',    icon: LayoutGrid },
   { key: 'divisions',       label: 'Division Management', icon: LayoutGrid },
   { key: 'master-schedule', label: 'Master Schedule',     icon: CalendarDays },
-  { key: 'audit',           label: 'Audit Logs',          icon: Shield },
   { key: 'feedback',        label: 'All Feedback',        icon: MessageSquare },
   { key: 'notifications',   label: 'Notifications',       icon: Bell },
   { key: 'profile',         label: 'Profile',             icon: User },
-  { key: 'settings',        label: 'Settings',            icon: Settings },
 ];
 
 export default function Sidebar({ activePage, onNavigate, isCollapsed, onToggle }) {

@@ -30,7 +30,7 @@ export interface ISession extends Document {
 	endTime: Date;
 	instructor: Types.ObjectId | IUser;
 	division: Types.ObjectId | IDivision;
-	status: "active" | "cancelled";
+	status: "upcoming" | "active" | "completed" | "cancelled";
 	qrGenerationCount: number;
 	createdAt: Date;
 }
@@ -42,6 +42,7 @@ export interface ITask extends Document {
 	session: Types.ObjectId;
 	status: "active" | "inactive";
 	allowedTypes: string[];
+	formLink?: string;
 	allowLateSubmission: boolean;
 	maxScore: number;
 	division: Types.ObjectId | IDivision;
@@ -64,6 +65,7 @@ export interface ISubmission extends Document {
 
 export interface IResource extends Document {
 	title: string;
+	description?: string;
 	fileUrl: string;
 	externalLink?: string;
 	type: "pdf" | "video" | "image" | "zip" | "link";
@@ -111,7 +113,9 @@ export interface IGroup extends Document {
 	name: string;
 	description?: string;
 	division: Types.ObjectId;
+	leader?: string;
 	members: Types.ObjectId[];
+	memberNames: string[];
 	createdBy: Types.ObjectId | IUser;
 	createdAt: Date;
 }

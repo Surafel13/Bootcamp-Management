@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, CalendarDays, Code, FileText, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, CalendarDays, Code, FileText, X, CheckCircle, AlertCircle, Link as LinkIcon } from 'lucide-react';
 import apiFetch from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -16,6 +16,7 @@ export default function InstructorTasksPage() {
     deadline: '', 
     maxScore: 100, 
     allowedTypes: ['github'],
+    formLink: '',
     division: user.divisions[0]?._id || user.divisions[0] || ''
   });
 
@@ -47,6 +48,7 @@ export default function InstructorTasksPage() {
       deadline: '', 
       maxScore: 100, 
       allowedTypes: ['github'],
+      formLink: '',
       division: user.divisions[0]?._id || user.divisions[0] || ''
     });
     setEditId(null);
@@ -124,6 +126,7 @@ export default function InstructorTasksPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                       {t.allowedTypes.includes('github') && <Code size={13} />}
                       {t.allowedTypes.includes('file') && <FileText size={13} />}
+                      {t.allowedTypes.includes('form') && <LinkIcon size={13} />}
                       {t.allowedTypes.join(' / ')}
                     </div>
                   </div>
@@ -138,6 +141,7 @@ export default function InstructorTasksPage() {
                          deadline: t.deadline ? new Date(t.deadline).toISOString().slice(0, 16) : '',
                          maxScore: t.maxScore,
                          allowedTypes: t.allowedTypes,
+                         formLink: t.formLink || '',
                          division: t.division?._id || t.division
                        });
                        setEditId(t._id);
@@ -203,8 +207,20 @@ export default function InstructorTasksPage() {
                       setForm(f => ({ ...f, allowedTypes: types }));
                     }} /> File Upload
                   </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={form.allowedTypes.includes('form')} onChange={e => {
+                      const types = e.target.checked ? [...form.allowedTypes, 'form'] : form.allowedTypes.filter(t => t !== 'form');
+                      setForm(f => ({ ...f, allowedTypes: types }));
+                    }} /> External Form
+                  </label>
                 </div>
               </div>
+              {form.allowedTypes.includes('form') && (
+                <div className="form-group" style={{ marginTop: 12 }}>
+                  <label>External Form Link</label>
+                  <input className="form-input" type="url" placeholder="https://docs.google.com/forms/..." value={form.formLink} onChange={e => setForm(f => ({ ...f, formLink: e.target.value }))} />
+                </div>
+              )}
             </div>
             <div className="modal-actions">
               <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>

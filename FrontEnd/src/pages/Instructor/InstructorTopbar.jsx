@@ -19,7 +19,7 @@ const PAGE_META = {
   settings:      { title: 'Settings',                 sub: 'Configure system preferences' },
 };
 
-export default function InstructorTopbar({ activePage }) {
+export default function InstructorTopbar({ activePage, onNavigate }) {
   const { isDark, toggle } = useTheme();
   const { user, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -27,7 +27,7 @@ export default function InstructorTopbar({ activePage }) {
   const meta = PAGE_META[activePage] || PAGE_META.sessions;
   const divisionName = user?.divisions?.[0]?.name || 'Division';
   const isGenericPage = ['notifications', 'profile', 'settings'].includes(activePage);
-  const displayTitle = isGenericPage ? meta.title : `${divisionName} Division Dashboard`;
+  const displayTitle = isGenericPage ? meta.title : (divisionName === 'Division' ? 'Division Admin Dashboard' : `${divisionName} Admin Dashboard`);
 
   return (
     <header className="topbar">
@@ -76,13 +76,9 @@ export default function InstructorTopbar({ activePage }) {
 
           {showDropdown && (
             <div className="dropdown-menu">
-              <button className="dropdown-item" onClick={() => setShowDropdown(false)}>
+              <button className="dropdown-item" onClick={() => { setShowDropdown(false); onNavigate('profile'); }}>
                 <User size={16} />
                 <span>My Profile</span>
-              </button>
-              <button className="dropdown-item" onClick={() => setShowDropdown(false)}>
-                <Settings size={16} />
-                <span>Account Settings</span>
               </button>
               <div className="dropdown-divider" />
               <button className="dropdown-item danger" onClick={logout}>

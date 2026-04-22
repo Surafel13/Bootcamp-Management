@@ -35,7 +35,6 @@ function InstructorDashboard() {
       case 'qrcode':        return <InstructorQRPage />;
       case 'notifications': return <NotificationsPage />;
       case 'profile':       return <ProfilePage />;
-      case 'settings':      return <SettingsPage />;
       default:              return <div className="card"><div className="empty-state"><h3>Coming Soon</h3></div></div>;
     }
   };
@@ -49,7 +48,7 @@ function InstructorDashboard() {
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
       <div className="main-wrapper">
-        <InstructorTopbar activePage={activePage} />
+        <InstructorTopbar activePage={activePage} onNavigate={setActivePage} />
         <main className="page-content">
           {renderPage()}
         </main>

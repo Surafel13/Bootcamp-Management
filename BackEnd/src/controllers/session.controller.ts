@@ -15,11 +15,13 @@ import * as QRCode from "qrcode";
 
 interface TokenPayload extends jwt.JwtPayload {
 	sessionId: Types.ObjectId;
+	attendanceType: "present" | "late";
 }
 
 // Memory store for QR tokens (use Redis in production)
 const usedTokens = new Set<string>();
 const activeTokens = new Map<string, boolean>();
+const activeSessionQR = new Map<string, { token: string, image: string, expiresAt: number }>();
 
 export const createSession = catchAsync(
 	async (req: Request, res: Response, next: NextFunction) => {
@@ -121,10 +123,16 @@ export const getAllSessions = catchAsync(async (req: Request, res: Response) => 
 		if (to) filter.startTime.$lte = new Date(to as string);
 	}
 
+	// Auto-complete expired sessions
+	await Session.updateMany(
+		{ endTime: { $lt: new Date() }, status: { $in: ["upcoming", "active"] } },
+		{ status: "completed" }
+	);
+
 	const sessions = await Session.find(filter)
 		.populate("division", "name")
 		.populate("instructor", "name email")
-		.sort("startTime");
+		.sort("-startTime");
 
 	res.status(200).json({
 		status: "success",
@@ -267,15 +275,20 @@ export const generateQR = catchAsync(async (req: Request, res: Response, next: N
 	session.qrGenerationCount = (session.qrGenerationCount || 0) + 1;
 	await session.save();
 
+	const attendanceType = req.body.attendanceType || "present";
 	const qrSecret = crypto.randomBytes(16).toString("hex");
 
-	const token = jwt.sign({ sessionId, qrSecret, generationCount: session.qrGenerationCount }, env.JWT_QR_SECRET || "qr_scrt", {
+	const token = jwt.sign({ 
+		sessionId, 
+		qrSecret, 
+		attendanceType,
+		generationCount: session.qrGenerationCount 
+	}, env.JWT_QR_SECRET || "qr_scrt", {
 		expiresIn: "20s",
 	});
 
 	activeTokens.set(token, true);
-	setTimeout(() => activeTokens.delete(token), 20000);
-
+	
 	const qrData = JSON.stringify({
 		sessionId,
 		token,
@@ -285,7 +298,31 @@ export const generateQR = catchAsync(async (req: Request, res: Response, next: N
 
 	const qrImage = await QRCode.toDataURL(qrData);
 
+	activeSessionQR.set(sessionId as string, { token, image: qrImage, expiresAt: Date.now() + 20000 });
+	
+	setTimeout(() => {
+		activeTokens.delete(token);
+		const current = activeSessionQR.get(sessionId as string);
+		if (current && current.token === token) activeSessionQR.delete(sessionId as string);
+	}, 20000);
+
 	res.status(200).json({ status: "success", qrImage, qrToken: token, expiresIn: 20 });
+});
+
+export const getActiveQR = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+	const { sessionId } = req.params;
+	const activeQR = activeSessionQR.get(sessionId as string);
+
+	if (!activeQR || Date.now() > activeQR.expiresAt) {
+		return res.status(200).json({ status: "success", qrImage: null, qrToken: null });
+	}
+
+	res.status(200).json({ 
+		status: "success", 
+		qrImage: activeQR.image, 
+		qrToken: activeQR.token,
+		expiresIn: Math.ceil((activeQR.expiresAt - Date.now()) / 1000)
+	});
 });
 
 export { usedTokens, activeTokens };

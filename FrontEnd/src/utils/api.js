@@ -1,13 +1,17 @@
 const API_URL = 'http://localhost:3000/api';
+export const UPLOADS_URL = 'http://localhost:3000/uploads';
 
 export const apiFetch = async (endpoint, options = {}) => {
   const token = localStorage.getItem('token');
   
   const headers = {
-    'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` }),
     ...options.headers,
   };
+
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,

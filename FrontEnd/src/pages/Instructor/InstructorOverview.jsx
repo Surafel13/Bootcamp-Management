@@ -55,26 +55,18 @@ export default function InstructorOverview() {
         <StatCard label="Pending Grades" value={stats.pendingGrades} sub="Require review" icon={Award} color="#fdcb6e" />
       </div>
 
-      <div className="charts-grid" style={{ marginTop: 24 }}>
+      <div style={{ marginTop: 24 }}>
         <div className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 16 }}>Welcome back, {user.name}!</h3>
-          <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            You are managing the <strong>{user.divisions[0]?.name || 'Assigned'} Division</strong>. 
-            Currently, you have {stats.pendingGrades} assignments waiting to be graded. 
-            Your division's attendance is holding steady at {stats.avgAttendance}%.
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 16 }}>Welcome back, {user.name}!</h3>
+          <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: '1rem' }}>
+            You are currently managing the <strong>{user.divisions[0]?.name || 'Assigned'} Division</strong>. 
+            There are currently <strong style={{ color: 'var(--primary)', fontSize: '1.1rem' }}>{stats.pendingGrades}</strong> assignments waiting to be reviewed and graded. 
+            Your division's overall attendance is holding steady at <strong>{stats.avgAttendance}%</strong>.
           </p>
-          <div style={{ marginTop: 20, display: 'flex', gap: 12 }}>
-            <div style={{ padding: '10px 16px', background: 'var(--primary-glow)', borderRadius: 12, color: 'var(--primary)', fontSize: '0.85rem', fontWeight: 700 }}>
+          <div style={{ marginTop: 24, display: 'flex', gap: 12 }}>
+            <div style={{ padding: '12px 20px', background: 'var(--primary-glow)', borderRadius: 12, color: 'var(--primary)', fontSize: '0.9rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
               🚀 Division Status: Operational
             </div>
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 16 }}>Quick Actions</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <button className="btn btn-secondary" style={{ justifyContent: 'center' }}>Send Announcement</button>
-            <button className="btn btn-secondary" style={{ justifyContent: 'center' }}>Generate Report</button>
           </div>
         </div>
       </div>

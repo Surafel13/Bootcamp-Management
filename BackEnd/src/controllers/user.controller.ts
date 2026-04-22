@@ -5,7 +5,7 @@ import catchAsync from "../utils/catchAsync.js";
 import AppError from "../utils/appError.js";
 
 // Admin creates a user (no self-registration per SRS §4.1)
-export const createUser = catchAsync(async (req: Request, res: Response) => {
+export const createUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 	const { name, email, password, roles, divisions, status } = req.body;
 
 	// Backend Enforcement: Non-super_admins MUST have a division
@@ -53,6 +53,23 @@ export const getAllUsers = catchAsync(async (req: Request, res: Response) => {
 export const getMe = catchAsync(async (req: Request, res: Response) => {
 	const user = await User.findById(req.user!._id).populate("divisions", "name description");
 	res.status(200).json({ status: "success", data: { user } });
+});
+
+// Update currently logged-in user
+export const updateMe = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+	const user = await User.findById(req.user!._id);
+	if (!user) return next(new AppError("User not found", 404, {}));
+
+	if (req.body.name) user.name = req.body.name;
+	if (req.body.password) user.password = req.body.password;
+
+	await user.save();
+
+	// Hide password
+	const userResponse = user.toObject() as any;
+	delete userResponse.password;
+
+	res.status(200).json({ status: "success", data: { user: userResponse } });
 });
 
 // Get user by ID

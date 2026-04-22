@@ -12,6 +12,7 @@ export default function InstructorQRPage() {
   const [timeLeft, setTimeLeft] = useState(20);
   const [qrLoading, setQrLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [attendanceType, setAttendanceType] = useState('present');
 
   const fetchOngoingSessions = async () => {
     try {
@@ -30,7 +31,10 @@ export default function InstructorQRPage() {
     try {
       setQrLoading(true);
       setErrorMsg('');
-      const data = await apiFetch(`/sessions/${sessionId}/generate-qr`, { method: 'POST' });
+      const data = await apiFetch(`/sessions/${sessionId}/generate-qr`, { 
+        method: 'POST',
+        body: JSON.stringify({ attendanceType })
+      });
       setQrToken(data.qrImage); // Set the base64 image string
       setTimeLeft(20);
     } catch (err) {
@@ -165,6 +169,23 @@ export default function InstructorQRPage() {
                 </button>
               </div>
             )}
+          </div>
+
+          <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'center', gap: 10 }}>
+             <button 
+              className={`btn ${attendanceType === 'present' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setAttendanceType('present')}
+              style={{ flex: 1, maxWidth: 150 }}
+             >
+               Mark Present
+             </button>
+             <button 
+              className={`btn ${attendanceType === 'late' ? 'btn-warning' : 'btn-secondary'}`}
+              onClick={() => setAttendanceType('late')}
+              style={{ flex: 1, maxWidth: 150, background: attendanceType === 'late' ? '#ffbe0b' : '', color: attendanceType === 'late' ? '#000' : '' }}
+             >
+               Mark Late
+             </button>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>

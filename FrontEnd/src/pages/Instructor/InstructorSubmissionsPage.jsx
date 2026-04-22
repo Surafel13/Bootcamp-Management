@@ -92,7 +92,16 @@ export default function InstructorSubmissionsPage() {
                 ) : submissions.map(s => {
                   const status = s.score !== undefined && s.score !== null ? 'Graded' : 'Pending';
                   return (
-                    <tr key={s._id}>
+                    <tr 
+                      key={s._id}
+                      onClick={() => {
+                        setGradingTarget(s);
+                        setScoreForm({ score: s.score || '', feedback: s.feedback || '' });
+                      }}
+                      style={{ cursor: 'pointer', transition: 'background 0.2s' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
                       <td>
                         <div className="table-user">
                           <div className="table-avatar" style={{ background:'var(--primary-glow)', color:'var(--primary)' }}>
@@ -106,8 +115,8 @@ export default function InstructorSubmissionsPage() {
                       </td>
                       <td>
                         <div style={{ color:'var(--text-secondary)', fontSize:'0.82rem', display:'flex', flexDirection:'column' }}>
-                          <span>{new Date(s.createdAt).toLocaleDateString()}</span>
-                          <span style={{ fontSize:'0.75rem' }}>{new Date(s.createdAt).toLocaleTimeString()}</span>
+                          <span>{new Date(s.submittedAt || s.createdAt).toLocaleDateString()}</span>
+                          <span style={{ fontSize:'0.75rem' }}>{new Date(s.submittedAt || s.createdAt).toLocaleTimeString()}</span>
                         </div>
                       </td>
                       <td style={{ fontWeight:700, color:'var(--text-primary)' }}>{s.score !== undefined && s.score !== null ? `${s.score}/${s.task.maxScore}` : '-'}</td>
@@ -116,7 +125,8 @@ export default function InstructorSubmissionsPage() {
                         <button 
                           className="btn btn-primary" 
                           style={{ padding:'5px 12px', fontSize:'0.78rem' }}
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setGradingTarget(s);
                             setScoreForm({ score: s.score || '', feedback: s.feedback || '' });
                           }}
@@ -148,8 +158,13 @@ export default function InstructorSubmissionsPage() {
                     <Code size={14} /> View GitHub Repository <ExternalLink size={12} />
                   </a>
                 )}
+                {gradingTarget.fileUrl && (
+                  <a href={gradingTarget.fileUrl} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', color: 'var(--text-primary)', textDecoration: 'underline', marginBottom: 6 }}>
+                    <FileText size={14} /> View Attached File <ExternalLink size={12} />
+                  </a>
+                )}
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: 10 }}>
-                  <strong>Notes:</strong> {gradingTarget.notes || 'No student notes provided.'}
+                  <strong>Notes:</strong> {gradingTarget.text || 'No student notes provided.'}
                 </div>
               </div>
 

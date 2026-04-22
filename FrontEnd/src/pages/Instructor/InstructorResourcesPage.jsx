@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Upload, FileText, Link as LinkIcon, Video, Download, Trash2, FolderArchive, X, CheckCircle, AlertCircle } from 'lucide-react';
-import apiFetch from '../../utils/api';
+import apiFetch, { UPLOADS_URL } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 
 const ICONS = {
@@ -17,13 +17,14 @@ export default function InstructorResourcesPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [toast, setToast] = useState(null);
-  const [form, setForm] = useState({ title: '', type: 'link', url: '', description: '' });
+  const [form, setForm] = useState({ title: '', type: 'link', url: '', description: '', file: null });
 
   const fetchResources = async () => {
     try {
       setLoading(true);
       const data = await apiFetch('/resources');
-      setResources(data.data.resources || []);
+      const sorted = (data.data.resources || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setResources(sorted);
     } catch (err) {
       console.error(err);
     } finally {
@@ -39,19 +40,41 @@ export default function InstructorResourcesPage() {
   };
 
   const handleCreate = async () => {
-    if (!form.title || !form.url) return;
+    if (!form.title || (!form.url && !form.file)) return;
     try {
-      const payload = {
-        title: form.title,
-        type: form.type === 'link' ? 'link' : form.type,
-        description: form.description,
-        division: user?.divisions?.[0]?._id || user?.divisions?.[0],
-        [form.type === 'link' ? 'externalLink' : 'fileUrl']: form.url
-      };
-      await apiFetch('/resources', { method: 'POST', body: JSON.stringify(payload) });
+      let payload;
+      let headers = {};
+
+      if (form.type !== 'link' && form.file) {
+        // Use FormData for file uploads
+        payload = new FormData();
+        payload.append('title', form.title);
+        payload.append('type', form.type);
+        payload.append('description', form.description);
+        payload.append('division', user?.divisions?.[0]?._id || user?.divisions?.[0]);
+        payload.append('file', form.file);
+        // Important: When sending FormData, the browser sets the correct Content-Type with boundary
+        headers = { 'Content-Type': 'multipart/form-data' };
+      } else {
+        payload = JSON.stringify({
+          title: form.title,
+          type: 'link',
+          description: form.description,
+          division: user?.divisions?.[0]?._id || user?.divisions?.[0],
+          externalLink: form.url
+        });
+      }
+
+      await apiFetch('/resources', { 
+        method: 'POST', 
+        body: payload,
+        // apiFetch adds application/json by default, we need to override or handle it
+        headers: form.file ? {} : undefined 
+      });
+
       showToast('Resource uploaded successfully!');
       setShowModal(false);
-      setForm({ title: '', type: 'link', url: '', description: '' });
+      setForm({ title: '', type: 'link', url: '', description: '', file: null });
       fetchResources();
     } catch (err) {
       showToast(err.message, 'error');
@@ -114,9 +137,20 @@ export default function InstructorResourcesPage() {
                 </div>
                 <div className="table-actions">
                   {(r.externalLink || r.fileUrl) && (
-                    <a href={r.externalLink || r.fileUrl} target="_blank" rel="noreferrer" className="action-btn" style={{ background: 'var(--bg-input)' }} title="Open/Download">
+                    <button 
+                      className="action-btn" 
+                      style={{ background: 'var(--bg-input)' }} 
+                      title="Open/Download"
+                      onClick={() => {
+                        let url = r.externalLink || r.fileUrl;
+                        if (url && !url.startsWith('http')) {
+                          url = `${UPLOADS_URL}/${url}`;
+                        }
+                        window.open(url, '_blank');
+                      }}
+                    >
                       <Download size={15} />
-                    </a>
+                    </button>
                   )}
                   <button className="action-btn action-btn-delete" onClick={() => del(r._id)} title="Delete"><Trash2 size={15} /></button>
                 </div>
@@ -201,9 +235,15 @@ export default function InstructorResourcesPage() {
                       type="file" 
                       id="resource-file-input" 
                       style={{ display: 'none' }} 
+                      accept={
+                        form.type === 'pdf' ? '.pdf' :
+                        form.type === 'video' ? 'video/*' :
+                        form.type === 'zip' ? '.zip,.rar,.7z' :
+                        '*'
+                      }
                       onChange={e => {
                         const file = e.target.files[0];
-                        if (file) setForm(f => ({ ...f, url: file.name }));
+                        if (file) setForm(f => ({ ...f, url: file.name, file: file }));
                       }} 
                     />
                     <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--white)', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>

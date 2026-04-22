@@ -263,7 +263,7 @@ export default function InstructorSessionsPage() {
                     <td><Badge text={s.status} colorMap={STATUS_STYLE} /></td>
                     <td>
                       <div className="table-actions">
-                        {s.status === 'upcoming' && (
+                        {['upcoming', 'active'].includes(s.status.toLowerCase()) && (
                           <button className="action-btn" onClick={() => setQrTarget(s._id)} title="Show QR" style={{ color: 'var(--primary)', background: 'var(--primary-glow)' }}>
                             <QrCode size={15}/>
                           </button>

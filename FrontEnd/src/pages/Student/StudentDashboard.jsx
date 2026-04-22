@@ -10,6 +10,7 @@ import Feedback from './Feedback';
 import Profile from './Profile';
 import Settings from './Settings';
 import Resources from './Resources';
+import StudentGroupsPage from './StudentGroupsPage';
 import Notifications from './Notifications';
 import BootcampDetail from './BootcampDetail';
 
@@ -57,6 +58,7 @@ function StudentDashboard() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/resources" element={<Resources />} />
+            <Route path="/groups" element={<StudentGroupsPage />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/bootcamp-detail/:id" element={<BootcampDetail />} />
             <Route path="*" element={<Navigate to="/" replace />} />

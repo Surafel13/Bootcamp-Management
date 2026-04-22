@@ -3,6 +3,7 @@ import {
     createUser, 
     getAllUsers, 
     getMe, 
+    updateMe,
     getUserById, 
     updateUser, 
     updateUserStatus, 
@@ -16,9 +17,10 @@ const router: Router = Router();
 router.use(protect);
 
 router.get("/me", getMe);
+router.patch("/me", updateMe);
 
 // Admin only routes
-router.use(restrictTo("super_admin", "admin"));
+router.use(restrictTo("super_admin", "division_admin"));
 
 router.post("/", createUser);
 router.get("/", getAllUsers);

@@ -3,37 +3,34 @@ import Group from "../models/group.model.js";
 import catchAsync from "../utils/catchAsync.js";
 import AppError from "../utils/appError.js";
 
-// Admin creates a group (size 2–8, one per student per division)
+// Admin creates a group (size 2–8)
 export const createGroup = catchAsync(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const { members, division } = req.body;
+		const { members, memberNames, division } = req.body;
 
-		if (!members || !Array.isArray(members)) {
-			return next(new AppError("Members array is required", 400, { members: "Required" }));
+		// We now support either ObjectId members or string-based memberNames
+		const totalMembers = (members?.length || 0) + (memberNames?.length || 0);
+
+		if (totalMembers < 1) {
+			return next(new AppError("Group must have at least one member", 400, { members: "Required" }));
 		}
 
-		if (members.length < 2 || members.length > 8) {
-			return next(
-				new AppError("Group size must be between 2 and 8 students", 422, {
-					members: "Invalid group size",
-				}),
-			);
-		}
+		if (members && Array.isArray(members) && members.length > 0) {
+			// Check if any member already belongs to a group in this division
+			const existingMembership = await Group.findOne({
+				division,
+				members: { $in: members },
+			});
 
-		// Check if any member already belongs to a group in this division
-		const existingMembership = await Group.findOne({
-			division,
-			members: { $in: members },
-		});
-
-		if (existingMembership) {
-			return next(
-				new AppError(
-					"One or more students already belong to a group in this division",
-					409,
-					{ members: "Duplicate group membership" },
-				),
-			);
+			if (existingMembership) {
+				return next(
+					new AppError(
+						"One or more students already belong to a group in this division",
+						409,
+						{ members: "Duplicate group membership" },
+					),
+				);
+			}
 		}
 
 		const group = await Group.create({
@@ -41,7 +38,9 @@ export const createGroup = catchAsync(
 			createdBy: req.user!._id,
 		});
 
-		await group.populate("members", "name email");
+		if (group.members && group.members.length > 0) {
+			await group.populate("members", "name email");
+		}
 		await group.populate("division", "name");
 
 		res.status(201).json({ status: "success", data: { group } });

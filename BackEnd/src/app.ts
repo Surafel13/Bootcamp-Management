@@ -33,6 +33,9 @@ app.use(express.json());
 // Enable CORS
 app.use(cors());
 
+// Static Files
+app.use("/uploads", express.static("uploads"));
+
 app.use(
   morgan("combined", {
     stream: { write: (message) => logger.info(message.trim()) },

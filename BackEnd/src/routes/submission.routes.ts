@@ -5,7 +5,8 @@ import {
     getAllSubmissions, 
     getSubmissionById, 
     getSubmissionsByTask, 
-    getMySubmissions 
+    getMySubmissions,
+    updateSubmission 
 } from "../controllers/submission.controller.js";
 import { protect, restrictTo } from "../middlewares/auth.middleware.js";
 

@@ -4,8 +4,14 @@ import catchAsync from "../utils/catchAsync.js";
 import AppError from "../utils/appError.js";
 
 export const createResource = catchAsync(async (req: Request, res: Response) => {
+	const data = { ...req.body };
+	
+	if (req.file) {
+		data.fileUrl = req.file.filename;
+	}
+
 	const resource = await Resource.create({
-		...req.body,
+		...data,
 		uploadedBy: req.user!._id,
 	});
 	res.status(201).json({ status: "success", data: { resource } });

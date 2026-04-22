@@ -1,16 +1,8 @@
-import { useState, useMemo } from 'react';
-import { Search, Plus, Pencil, Trash2, X, CheckCircle } from 'lucide-react';
-
-const INITIAL_USERS = [
-  { id: 1, name: 'Dr. Sarah Mitchell',  initials: 'DSM', email: 'sarah.m@university.edu',   role: 'Division Admin', division: 'Development',   status: 'Active' },
-  { id: 2, name: 'Prof. James Chen',    initials: 'PJC', email: 'james.c@university.edu',   role: 'Instructor',     division: 'Cybersecurity', status: 'Active' },
-  { id: 3, name: 'Emily Rodriguez',     initials: 'ER',  email: 'emily.r@university.edu',   role: 'Student',        division: 'Data Science',  status: 'Active' },
-  { id: 4, name: 'Michael Brown',       initials: 'MB',  email: 'michael.b@university.edu', role: 'Student',        division: 'CPD',           status: 'Suspended' },
-  { id: 5, name: 'Admin Root',          initials: 'AR',  email: 'admin@system.edu',         role: 'Super Admin',    division: 'All',           status: 'Active' },
-];
+import { useState, useEffect, useMemo } from 'react';
+import { Search, Plus, Pencil, Trash2, X, CheckCircle, Loader } from 'lucide-react';
+import apiFetch from '../../utils/api';
 
 const ROLES = ['Super Admin', 'Division Admin', 'Instructor', 'Student'];
-const DIVISIONS = ['Data Science', 'Development', 'CPD', 'Cybersecurity', 'All'];
 const STATUSES = ['Active', 'Suspended', 'Graduated'];
 
 const DIV_COLOR = {
@@ -85,6 +77,19 @@ export default function UsersPage() {
   const openAdd = () => {
     setForm({ name: '', email: '', role: 'Student', division: 'Data Science', status: 'Active' });
     setEditTarget(null);
+    const mappedUsers = uRes.data.users.map(u => {
+      const uName = u.name || 'Unknown User';
+      return {
+        id: u._id,
+        name: uName,
+        initials: uName.split(' ').filter(Boolean).slice(0, 3).map(w => w[0]?.toUpperCase()).join('') || '?',
+        email: u.email || 'No Email',
+        role: u.roles && u.roles.length > 0 ? formatRole(u.roles[0]) : 'Student',
+        division: u.divisions && u.divisions.length > 0 && u.divisions[0] && u.divisions[0].name ? u.divisions[0].name : 'All',
+        status: u.status ? u.status.charAt(0).toUpperCase() + u.status.slice(1) : 'Active',
+        rawUser: u
+      };
+    });
     setShowModal(true);
   };
 
