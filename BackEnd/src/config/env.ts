@@ -19,6 +19,10 @@ const env = {
   REDIS_PASSWORD: process.env.REDIS_PASSWORD || "",
   REDIS_TLS: process.env.REDIS_TLS || "false",
   FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:5173",
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || "",
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || "",
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || "",
+  CLOUDINARY_UPLOAD_FOLDER: process.env.CLOUDINARY_UPLOAD_FOLDER || "bootcamp-management",
 };
 
 export default env;
