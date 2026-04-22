@@ -66,6 +66,7 @@ export default function UsersPage() {
   const [toast, setToast]         = useState(null);
 
   const [form, setForm] = useState({ name: '', email: '', role: 'Student', division: 'Data Science', status: 'Active' });
+  console.log('ROLE VALUE:', form.role);
 
   const filtered = useMemo(() =>
     users.filter(u =>
@@ -82,8 +83,15 @@ export default function UsersPage() {
     setTimeout(() => setToast(null), 2800);
   };
 
-  const openAdd = () => {
-    setForm({ name: '', email: '', role: 'Student', division: 'Data Science', status: 'Active' });
+const openAdd = () => {
+    // Change role: '' to a valid default like 'Student' or ROLES[3]
+    setForm({ 
+      name: '', 
+      email: '', 
+      role: 'Student', // Ensure this matches a value in your ROLES array
+      division: 'Data Science', 
+      status: 'Active' 
+    });
     setEditTarget(null);
     setShowModal(true);
   };
@@ -100,7 +108,7 @@ export default function UsersPage() {
   };
 
   const handleSave = () => {
-    if (!form.name || !form.email) return;
+    if (!form.name || !form.email || !form.role) return;
     if (editTarget) {
       setUsers(prev => prev.map(a => a.id === editTarget ? { ...a, ...form, initials: initials(form.name) } : a));
       showToast('User updated successfully.');
@@ -174,48 +182,93 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {showModal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
-          <div className="modal" style={{ maxWidth: 600 }}>
-            <div className="modal-header">
-              <h2>{editTarget ? 'Edit User' : 'Add New User'}</h2>
-              <button className="modal-close" onClick={() => setShowModal(false)}><X size={15} /></button>
-            </div>
-            <div className="modal-form form-grid">
-              <div className="form-group">
-                <label>Full Name</label>
-                <input className="form-input" placeholder="Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-              </div>
-              <div className="form-group">
-                <label>Email Address</label>
-                <input className="form-input" type="email" placeholder="email@university.edu" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-              </div>
-              <div className="form-group">
-                <label>Role</label>
-                <select className="form-input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
-                  {ROLES.map(r => <option key={r}>{r}</option>)}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Division</label>
-                <select className="form-input" value={form.division} onChange={e => setForm(f => ({ ...f, division: e.target.value }))}>
-                  {DIVISIONS.map(d => <option key={d}>{d}</option>)}
-                </select>
-              </div>
-              <div className="form-group" style={{ gridColumn: '1 / span 2' }}>
-                <label>Status</label>
-                <select className="form-input" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
-                  {STATUSES.map(s => <option key={s}>{s}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="modal-actions" style={{ marginTop: 20 }}>
-              <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleSave}>{editTarget ? 'Save Changes' : 'Add User'}</button>
-            </div>
-          </div>
+{showModal && (
+  <div className="modal-overlay" onClick={() => setShowModal(false)}>
+    <div 
+      className="modal" 
+      style={{ maxWidth: 600 }} 
+      onClick={(e) => e.stopPropagation()} 
+    >
+      <div className="modal-header">
+        <h2>{editTarget ? 'Edit User' : 'Add New User'}</h2>
+        <button className="modal-close" onClick={() => setShowModal(false)}>
+          <X size={15} />
+        </button>
+      </div>
+
+      <div className="modal-form form-grid">
+        <div className="form-group">
+          <label>Full Name</label>
+          <input 
+            className="form-input" 
+            placeholder="Name" 
+            value={form.name} 
+            onChange={e => setForm({ ...form, name: e.target.value })} 
+          />
         </div>
-      )}
+
+        <div className="form-group">
+          <label>Email Address</label>
+          <input 
+            className="form-input" 
+            type="email" 
+            placeholder="email@university.edu" 
+            value={form.email} 
+            onChange={e => setForm({ ...form, email: e.target.value })} 
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Role</label>
+          <select 
+            className="form-input" 
+            value={form.role} 
+            onChange={e => setForm({ ...form, role: e.target.value })}
+          >
+            {ROLES.map(r => (
+              <option key={r} value={r}>{r}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label>Division</label>
+          <select 
+            className="form-input" 
+            value={form.division} 
+            onChange={e => setForm({ ...form, division: e.target.value })}
+          >
+            {DIVISIONS.map(d => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="form-group" style={{ gridColumn: '1 / span 2' }}>
+          <label>Status</label>
+          <select 
+            className="form-input" 
+            value={form.status} 
+            onChange={e => setForm({ ...form, status: e.target.value })}
+          >
+            {STATUSES.map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="modal-actions" style={{ marginTop: 20 }}>
+        <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
+          Cancel
+        </button>
+        <button type="button" className="btn btn-primary" onClick={handleSave}>
+          {editTarget ? 'Save Changes' : 'Add User'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }

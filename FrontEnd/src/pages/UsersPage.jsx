@@ -61,13 +61,14 @@ export default function UsersPage() {
   const [editTarget, setEditTarget] = useState(null);
   const [toast, setToast] = useState(null);
 
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    roles: ['student'],
-    memberships: [],  // Changed from divisions
-    status: 'active'
-  });
+ const [form, setForm] = useState({
+  name: '',
+  email: '',
+  roles: ['student'],
+  primaryRole: 'student', // Add this line
+  memberships: [],
+  status: 'active'
+});
 
   const fetchUsers = async () => {
     try {
@@ -116,21 +117,22 @@ export default function UsersPage() {
   };
 
   const openEdit = (user) => {
-    // Convert memberships to form format
-    const memberships = user.memberships?.map(m => ({
-      division: m.division?._id || m.division,
-      role: m.role
-    })) || [];
+  const memberships = user.memberships?.map(m => ({
+    division: m.division?._id || m.division,
+    role: m.role
+  })) || [];
 
-    setForm({
-      name: user.name,
-      email: user.email,
-      memberships: memberships,
-      status: user.status
-    });
-    setEditTarget(user._id);
-    setShowModal(true);
-  };
+  setForm({
+    name: user.name,
+    email: user.email,
+    memberships: memberships,
+    status: user.status,
+    roles: user.roles || ['student'],
+    primaryRole: user.roles?.[0] || 'student' // Set this from the user data
+  });
+  setEditTarget(user._id);
+  setShowModal(true);
+};
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
@@ -199,10 +201,15 @@ export default function UsersPage() {
     }));
   };
 
+// --- PLACE IT HERE ---
   const updateMembership = (index, field, value) => {
-    const newMemberships = [...form.memberships];
-    newMemberships[index][field] = value;
-    setForm(f => ({ ...f, memberships: newMemberships }));
+    setForm(f => {
+      const newMemberships = [...f.memberships];
+      // We spread the specific membership object to ensure React 
+      // notices the nested change and re-renders the dropdowns.
+      newMemberships[index] = { ...newMemberships[index], [field]: value };
+      return { ...f, memberships: newMemberships };
+    });
   };
 
   const removeMembership = (index) => {
@@ -307,15 +314,22 @@ export default function UsersPage() {
               {/* Primary Role */}
               <div className="form-group">
                 <label>Primary Role</label>
-                <select
-                  className="form-input"
-                  value={form.primaryRole || 'student'}
-                  onChange={e => setForm(f => ({ ...f, roles: [e.target.value] }))}
-                >
-                  <option value="super_admin">Super Admin</option>
-                  <option value="division_admin">Division Admin</option>
-                  <option value="student">Student</option>
-                </select>
+               <select
+  className="form-input"
+  value={form.primaryRole} // Matches the new state key
+  onChange={e => {
+    const val = e.target.value;
+    setForm(f => ({ 
+      ...f, 
+      primaryRole: val, 
+      roles: [val] // Keep roles array in sync
+    }));
+  }}
+>
+  <option value="super_admin">Super Admin</option>
+  <option value="division_admin">Division Admin</option>
+  <option value="student">Student</option>
+</select>
                 <small style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4, display: 'block' }}>
                   This will be added to user's global roles
                 </small>
