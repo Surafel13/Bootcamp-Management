@@ -53,6 +53,7 @@ export const createUser = catchAsync(async (req: Request, res: Response) => {
 	}
 
 	const plainTextPassword = generateRandomPassword(12);
+	console.log("plainTextPassword", plainTextPassword);
 
 	const hashedPassword = await bcrypt.hash(plainTextPassword, 12);
 
@@ -115,7 +116,12 @@ export const getAllUsers = catchAsync(async (req: Request, res: Response) => {
 
 // Get currently logged-in user
 export const getMe = catchAsync(async (req: Request, res: Response) => {
-	const user = await User.findById(req.user!._id).populate("divisions", "name description");
+	const user = await User.findById(req.user!._id)
+		.select("memberships")
+		.populate({
+			path: "memberships.division",
+			select: "name description",
+		});
 	res.status(200).json({ status: "success", data: { user } });
 });
 
