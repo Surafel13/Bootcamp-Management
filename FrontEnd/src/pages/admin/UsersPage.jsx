@@ -6,15 +6,15 @@ const ROLES = ['Super Admin', 'Division Admin', 'Instructor', 'Student'];
 const STATUSES = ['Active', 'Suspended', 'Graduated'];
 
 const DIV_COLOR = {
-  'Development':   { bg: 'rgba(162,155,254,0.15)', color: '#7c6ef9' },
-  'Cybersecurity': { bg: 'var(--primary-glow)',  color: 'var(--primary)' },
-  'Data Science':  { bg: 'rgba(0,184,148,0.12)',   color: '#00b894' },
-  'CPD':           { bg: 'rgba(0,206,201,0.12)',   color: '#00cec9' },
-  'All':           { bg: 'var(--bg-input)', color: 'var(--text-primary)'}
+  'Development': { bg: 'rgba(162,155,254,0.15)', color: '#7c6ef9' },
+  'Cybersecurity': { bg: 'var(--primary-glow)', color: 'var(--primary)' },
+  'Data Science': { bg: 'rgba(0,184,148,0.12)', color: '#00b894' },
+  'CPD': { bg: 'rgba(0,206,201,0.12)', color: '#00cec9' },
+  'All': { bg: 'var(--bg-input)', color: 'var(--text-primary)' }
 };
 
 const STATUS_COLOR = {
-  'Active':    { bg: 'var(--success-light)', color: 'var(--success)' },
+  'Active': { bg: 'var(--success-light)', color: 'var(--success)' },
   'Suspended': { bg: 'var(--danger-light)', color: 'var(--danger)' },
   'Graduated': { bg: 'var(--info-light)', color: 'var(--info)' },
 }
@@ -50,12 +50,12 @@ function Toast({ msg }) {
 }
 
 export default function UsersPage() {
-  const [users, setUsers]         = useState(INITIAL_USERS);
-  const [search, setSearch]       = useState('');
+  const [users, setUsers] = useState(INITIAL_USERS);
+  const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
-  const [toast, setToast]         = useState(null);
+  const [toast, setToast] = useState(null);
 
   const [form, setForm] = useState({ name: '', email: '', role: 'Student', division: 'Data Science', status: 'Active' });
 
@@ -63,8 +63,8 @@ export default function UsersPage() {
     users.filter(u =>
       (roleFilter === 'All' || u.role === roleFilter) &&
       (u.name.toLowerCase().includes(search.toLowerCase()) ||
-       u.email.toLowerCase().includes(search.toLowerCase()) ||
-       u.division.toLowerCase().includes(search.toLowerCase()))
+        u.email.toLowerCase().includes(search.toLowerCase()) ||
+        u.division.toLowerCase().includes(search.toLowerCase()))
     ), [users, search, roleFilter]);
 
   const initials = (name) => name.split(' ').filter(Boolean).slice(0, 3).map(w => w[0].toUpperCase()).join('');

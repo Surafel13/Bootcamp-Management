@@ -152,10 +152,10 @@ export const getUserById = catchAsync(
 		const user = await User.findById(req.params.id)
 			.populate("memberships.division", "name code description")
 			.select("-password -passwordResetToken -passwordResetExpires -isPasswordChanged");
-		
+
 		if (!user)
 			return next(new AppError("No user found with that ID", 404, { id: "Not found" }));
-		
+
 		res.status(200).json({ status: "success", data: { user } });
 	},
 );
@@ -179,7 +179,7 @@ export const updateUser = catchAsync(async (req: Request, res: Response) => {
 				message: `Divisions not found: ${missingDivisions.join(", ")}`
 			});
 		}
-		
+
 		req.body.roles = [...new Set(memberships.map((m: { role: any; }) => m.role))];
 	}
 

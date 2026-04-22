@@ -85,6 +85,7 @@ export default function UsersPage() {
     try {
       const data = await apiFetch('/divisions');
       setDivisions(data.data.results || data.data.divisions || []);
+      console.log("division", data)
     } catch (err) {
       console.error('Failed to fetch divisions:', err);
     }
@@ -125,12 +126,14 @@ export default function UsersPage() {
     setForm({
       name: user.name,
       email: user.email,
+      roles: user.roles || ['student'],
       memberships: memberships,
       status: user.status
     });
     setEditTarget(user._id);
     setShowModal(true);
   };
+
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
@@ -232,6 +235,7 @@ export default function UsersPage() {
           </div>
         </div>
 
+
         <div className="table-wrap">
           {loading ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Loading users...</div>
@@ -288,7 +292,7 @@ export default function UsersPage() {
       </div>
 
       {showModal && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
           <div className="modal" style={{ maxWidth: 600 }}>
             <div className="modal-header">
               <h2>{editTarget ? 'Edit User' : 'Add New User'}</h2>
@@ -296,20 +300,21 @@ export default function UsersPage() {
             </div>
             <div className="modal-form form-grid">
               <div className="form-group">
-                <label>Full Name <span style={{ color: 'var(--danger)' }}>*</span></label>
+                <label>Full Name</label>
                 <input className="form-input" placeholder="Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
               </div>
               <div className="form-group">
-                <label>Email Address <span style={{ color: 'var(--danger)' }}>*</span></label>
+                <label>Email Address</label>
                 <input className="form-input" type="email" placeholder="email@university.edu" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
               </div>
+
 
               {/* Primary Role */}
               <div className="form-group">
                 <label>Primary Role</label>
                 <select
                   className="form-input"
-                  value={form.primaryRole || 'student'}
+                  value={form.roles?.[0] || 'student'}
                   onChange={e => setForm(f => ({ ...f, roles: [e.target.value] }))}
                 >
                   <option value="super_admin">Super Admin</option>
@@ -370,6 +375,7 @@ export default function UsersPage() {
                   {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
+
 
               {/* Auto-generated password notice */}
               {!editTarget && (
