@@ -129,6 +129,23 @@ export const getMe = catchAsync(async (req: Request, res: Response) => {
 	res.status(200).json({ status: "success", data: { user } });
 });
 
+// Update currently logged-in user
+export const updateMe = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+	const user = await User.findById(req.user!._id);
+	if (!user) return next(new AppError("User not found", 404, {}));
+
+	if (req.body.name) user.name = req.body.name;
+	if (req.body.password) user.password = req.body.password;
+
+	await user.save();
+
+	// Hide password
+	const userResponse = user.toObject() as any;
+	delete userResponse.password;
+
+	res.status(200).json({ status: "success", data: { user: userResponse } });
+});
+
 // Get user by ID
 export const getUserById = catchAsync(
 	async (req: Request, res: Response, next: NextFunction) => {

@@ -1,26 +1,30 @@
 import { useState, useEffect } from 'react';
 import { Upload, FileText, Link as LinkIcon, Video, Download, Trash2, FolderArchive, X, CheckCircle, AlertCircle } from 'lucide-react';
-import apiFetch from '../../utils/api';
+import apiFetch, { UPLOADS_URL } from '../../utils/api';
+import { useAuth } from '../../context/AuthContext';
 
 const ICONS = {
   pdf:   { icon: FileText,     bg: 'rgba(214,48,49,0.1)',    col: '#d63031' },
   link:  { icon: LinkIcon,     bg: 'rgba(9,132,227,0.1)',    col: '#0984e3' },
   video: { icon: Video,        bg: 'rgba(162,155,254,0.15)', col: '#7c6ef9' },
+  zip:   { icon: FolderArchive,bg: 'rgba(253,203,110,0.15)', col: '#b7860a' },
   file:  { icon: FolderArchive,bg: 'rgba(253,203,110,0.15)', col: '#b7860a' },
 };
 
 export default function InstructorResourcesPage() {
+  const { user } = useAuth();
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [toast, setToast] = useState(null);
-  const [form, setForm] = useState({ title: '', type: 'link', url: '', description: '' });
+  const [form, setForm] = useState({ title: '', type: 'link', url: '', description: '', file: null });
 
   const fetchResources = async () => {
     try {
       setLoading(true);
       const data = await apiFetch('/resources');
-      setResources(data.data.resources || []);
+      const sorted = (data.data.resources || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setResources(sorted);
     } catch (err) {
       console.error(err);
     } finally {
@@ -36,11 +40,41 @@ export default function InstructorResourcesPage() {
   };
 
   const handleCreate = async () => {
-    if (!form.title || !form.url) return;
+    if (!form.title || (!form.url && !form.file)) return;
     try {
-      await apiFetch('/resources', { method: 'POST', body: JSON.stringify(form) });
+      let payload;
+      let headers = {};
+
+      if (form.type !== 'link' && form.file) {
+        // Use FormData for file uploads
+        payload = new FormData();
+        payload.append('title', form.title);
+        payload.append('type', form.type);
+        payload.append('description', form.description);
+        payload.append('division', user?.divisions?.[0]?._id || user?.divisions?.[0]);
+        payload.append('file', form.file);
+        // Important: When sending FormData, the browser sets the correct Content-Type with boundary
+        headers = { 'Content-Type': 'multipart/form-data' };
+      } else {
+        payload = JSON.stringify({
+          title: form.title,
+          type: 'link',
+          description: form.description,
+          division: user?.divisions?.[0]?._id || user?.divisions?.[0],
+          externalLink: form.url
+        });
+      }
+
+      await apiFetch('/resources', { 
+        method: 'POST', 
+        body: payload,
+        // apiFetch adds application/json by default, we need to override or handle it
+        headers: form.file ? {} : undefined 
+      });
+
       showToast('Resource uploaded successfully!');
       setShowModal(false);
+      setForm({ title: '', type: 'link', url: '', description: '', file: null });
       fetchResources();
     } catch (err) {
       showToast(err.message, 'error');
@@ -102,10 +136,21 @@ export default function InstructorResourcesPage() {
                   </div>
                 </div>
                 <div className="table-actions">
-                  {r.url && (
-                    <a href={r.url} target="_blank" rel="noreferrer" className="action-btn" style={{ background: 'var(--bg-input)' }} title="Open/Download">
+                  {(r.externalLink || r.fileUrl) && (
+                    <button 
+                      className="action-btn" 
+                      style={{ background: 'var(--bg-input)' }} 
+                      title="Open/Download"
+                      onClick={() => {
+                        let url = r.externalLink || r.fileUrl;
+                        if (url && !url.startsWith('http')) {
+                          url = `${UPLOADS_URL}/${url}`;
+                        }
+                        window.open(url, '_blank');
+                      }}
+                    >
                       <Download size={15} />
-                    </a>
+                    </button>
                   )}
                   <button className="action-btn action-btn-delete" onClick={() => del(r._id)} title="Delete"><Trash2 size={15} /></button>
                 </div>
@@ -123,38 +168,112 @@ export default function InstructorResourcesPage() {
       )}
 
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay">
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
             <div className="modal-header">
-              <h2>Upload Resource</h2>
-              <button className="modal-close" onClick={() => setShowModal(false)}><X size={15} /></button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ padding: 8, background: 'var(--primary-glow)', borderRadius: 10, color: 'var(--primary)' }}>
+                  <Upload size={18} />
+                </div>
+                <h2>Upload Resource</h2>
+              </div>
+              <button className="modal-close" onClick={() => { setShowModal(false); setForm({ title: '', type: 'link', url: '', description: '' }); }}><X size={15} /></button>
             </div>
             <div className="modal-form">
               <div className="form-group">
-                <label>Title</label>
-                <input className="form-input" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
+                <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 8, display: 'block' }}>Title</label>
+                <input 
+                  className="form-input" 
+                  placeholder="e.g. Introduction to React"
+                  value={form.title} 
+                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))} 
+                />
               </div>
               <div className="form-group">
-                <label>Type</label>
-                <select className="form-input" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
-                  <option value="link">External Link</option>
+                <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 8, display: 'block' }}>Type</label>
+                <select className="form-input" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value, url: '' }))}>
+                  <option value="link">External Link / URL</option>
                   <option value="pdf">PDF Document</option>
-                  <option value="video">Video</option>
-                  <option value="file">File / Archive</option>
+                  <option value="video">Video Lesson</option>
+                  <option value="zip">File / Archive (ZIP/RAR)</option>
                 </select>
               </div>
+
+              {form.type === 'link' ? (
+                <div className="form-group">
+                  <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 8, display: 'block' }}>URL / Link</label>
+                  <div style={{ position: 'relative' }}>
+                    <LinkIcon size={14} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input 
+                      className="form-input" 
+                      style={{ paddingLeft: 40 }}
+                      placeholder="https://example.com/resource" 
+                      value={form.url} 
+                      onChange={e => setForm(f => ({ ...f, url: e.target.value }))} 
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="form-group">
+                  <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 8, display: 'block' }}>Upload {form.type.toUpperCase()}</label>
+                  <div 
+                    className="file-drop-zone"
+                    style={{
+                      border: '2px dashed var(--border)',
+                      borderRadius: 12,
+                      padding: '30px 20px',
+                      textAlign: 'center',
+                      background: 'var(--bg-input)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseOver={e => e.currentTarget.style.borderColor = 'var(--primary)'}
+                    onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                    onClick={() => document.getElementById('resource-file-input').click()}
+                  >
+                    <input 
+                      type="file" 
+                      id="resource-file-input" 
+                      style={{ display: 'none' }} 
+                      accept={
+                        form.type === 'pdf' ? '.pdf' :
+                        form.type === 'video' ? 'video/*' :
+                        form.type === 'zip' ? '.zip,.rar,.7z' :
+                        '*'
+                      }
+                      onChange={e => {
+                        const file = e.target.files[0];
+                        if (file) setForm(f => ({ ...f, url: file.name, file: file }));
+                      }} 
+                    />
+                    <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--white)', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                      <Upload size={20} color="var(--primary)" />
+                    </div>
+                    <p style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+                      {form.url || 'Select a file to upload'}
+                    </p>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      Maximum file size: 50MB
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="form-group">
-                <label>URL / Link</label>
-                <input className="form-input" placeholder="https://" value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} />
-              </div>
-              <div className="form-group">
-                <label>Description (Optional)</label>
-                <textarea className="form-input" rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+                <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 8, display: 'block' }}>Description (Optional)</label>
+                <textarea className="form-input" rows={3} placeholder="Provide a brief context..." value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
               </div>
             </div>
-            <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleCreate}>Upload Resource</button>
+            <div className="modal-actions" style={{ padding: '20px 24px', background: 'var(--bg-input)', borderBottomLeftRadius: 20, borderBottomRightRadius: 20 }}>
+              <button className="btn btn-secondary" onClick={() => { setShowModal(false); setForm({ title: '', type: 'link', url: '', description: '' }); }}>Cancel</button>
+              <button 
+                className="btn btn-primary" 
+                onClick={handleCreate}
+                disabled={!form.title || !form.url}
+                style={{ opacity: (!form.title || !form.url) ? 0.6 : 1 }}
+              >
+                Upload Resource
+              </button>
             </div>
           </div>
         </div>

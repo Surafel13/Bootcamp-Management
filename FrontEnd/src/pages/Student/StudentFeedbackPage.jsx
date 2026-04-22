@@ -13,6 +13,9 @@ export default function StudentFeedbackPage() {
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editComment, setEditComment] = useState('');
+  const [editRating, setEditRating] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,6 +56,19 @@ export default function StudentFeedbackPage() {
       alert(err.message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdate = async (id) => {
+    try {
+      await apiFetch(`/feedback/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ comment: editComment, rating: editRating })
+      });
+      setPastFeedback(p => p.map(f => f._id === id ? { ...f, comment: editComment, rating: editRating } : f));
+      setEditingId(null);
+    } catch (err) {
+      alert(err.message);
     }
   };
 
@@ -220,20 +236,73 @@ export default function StudentFeedbackPage() {
                         Submitted on {new Date(feedback.createdAt).toLocaleDateString()}
                       </p>
                     </div>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          size={22}
-                          color={star <= feedback.rating ? '#f1c40f' : 'var(--border)'}
-                          fill={star <= feedback.rating ? '#f1c40f' : 'none'}
-                        />
-                      ))}
-                    </div>
+                    {editingId === feedback._id ? (
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setEditRating(star)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                          >
+                            <Star
+                              size={22}
+                              color={star <= editRating ? '#f1c40f' : 'var(--border)'}
+                              fill={star <= editRating ? '#f1c40f' : 'none'}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={22}
+                            color={star <= feedback.rating ? '#f1c40f' : 'var(--border)'}
+                            fill={star <= feedback.rating ? '#f1c40f' : 'none'}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <p style={{ color: 'var(--text-primary)', lineHeight: '1.6', fontSize: '0.98rem' }}>
-                    {feedback.comment}
-                  </p>
+                  
+                  {editingId === feedback._id ? (
+                    <div>
+                      <textarea
+                        className="form-input"
+                        rows={3}
+                        value={editComment}
+                        onChange={(e) => setEditComment(e.target.value)}
+                        style={{ marginBottom: '12px' }}
+                      />
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button className="btn btn-primary" style={{ padding: '6px 16px', fontSize: '0.85rem' }} onClick={() => handleUpdate(feedback._id)}>
+                          Save Changes
+                        </button>
+                        <button className="btn btn-secondary" style={{ padding: '6px 16px', fontSize: '0.85rem' }} onClick={() => setEditingId(null)}>
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p style={{ color: 'var(--text-primary)', lineHeight: '1.6', fontSize: '0.98rem', marginBottom: '16px' }}>
+                        {feedback.comment}
+                      </p>
+                      <button 
+                        className="btn btn-secondary" 
+                        style={{ padding: '6px 16px', fontSize: '0.85rem', color: 'var(--primary)', borderColor: 'var(--primary)' }}
+                        onClick={() => {
+                          setEditingId(feedback._id);
+                          setEditComment(feedback.comment);
+                          setEditRating(feedback.rating);
+                        }}
+                      >
+                        Edit Comment
+                      </button>
+                    </>
+                  )}
                 </div>
               ))}
             </div>

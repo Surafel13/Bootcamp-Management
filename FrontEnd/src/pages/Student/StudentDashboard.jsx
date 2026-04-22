@@ -10,6 +10,7 @@ import Feedback from './Feedback';
 import Profile from './Profile';
 import Settings from './Settings';
 import Resources from './Resources';
+import StudentGroupsPage from './StudentGroupsPage';
 import Notifications from './Notifications';
 import BootcampDetail from './BootcampDetail';
 
@@ -45,7 +46,7 @@ function StudentDashboard() {
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
       <div className="main-wrapper">
-        <StudentTopbar activePage={activePage} />
+        <StudentTopbar activePage={activePage} onNavigate={handleNavigate} />
         <main className="page-content">
           <Routes>
             <Route path="/" element={<Sessions />} />
@@ -55,8 +56,8 @@ function StudentDashboard() {
             <Route path="/scanner" element={<Scanner />} />
             <Route path="/feedback" element={<Feedback />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/settings" element={<Settings />} />
             <Route path="/resources" element={<Resources />} />
+            <Route path="/groups" element={<StudentGroupsPage />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/bootcamp-detail/:id" element={<BootcampDetail />} />
             <Route path="*" element={<Navigate to="/" replace />} />

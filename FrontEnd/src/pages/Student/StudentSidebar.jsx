@@ -12,9 +12,9 @@ const NAV = [
   { key: 'scanner', label: 'QR Scanner', icon: QrCode },
   { key: 'feedback', label: 'Feedback', icon: MessageSquare },
   { key: 'resources', label: 'Resources', icon: BookOpen },
+  { key: 'groups', label: 'Groups', icon: Users },
   { key: 'notifications', label: 'Notifications', icon: Bell },
   { key: 'profile', label: 'Profile', icon: User },
-  { key: 'settings', label: 'Settings', icon: Settings },
 ];
 
 export default function StudentSidebar({ active, onNavigate, isCollapsed, onToggle }) {

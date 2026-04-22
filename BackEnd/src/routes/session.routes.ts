@@ -6,7 +6,8 @@ import {
     updateSession,
     cancelSession,
     getSessionAttendance,
-    generateQR
+    generateQR,
+    getActiveQR
 } from "../controllers/session.controller.js";
 import { restrictTo } from "../middlewares/auth.middleware.js";
 
@@ -24,5 +25,10 @@ router.delete("/:id", restrictTo("division_admin", "super_admin"), cancelSession
 router.get("/:id/attendance", getSessionAttendance);
 
 router.post("/:sessionId/generate-qr", generateQR,);
+
+router.get(
+    "/:sessionId/active-qr",
+    getActiveQR
+);
 
 export default router;

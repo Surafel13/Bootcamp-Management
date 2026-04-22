@@ -42,16 +42,19 @@ function QRModal({ sessionId, onClose }) {
   const [qrToken, setQrToken] = useState('');
   const [timeLeft, setTimeLeft] = useState(13);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const getQR = async () => {
     try {
       setLoading(true);
+      setError('');
       const data = await apiFetch(`/sessions/${sessionId}/generate-qr`, { method: 'POST' });
       setQrToken(data.qrToken);
       setTimeLeft(13);
       setLoading(false);
     } catch (err) {
-      console.error(err);
+      setError(err.message);
+      setLoading(false);
     }
   };
 
@@ -70,7 +73,7 @@ function QRModal({ sessionId, onClose }) {
   }, [sessionId]);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div className="modal" style={{ maxWidth: 400, textAlign: 'center', borderRadius: 24 }} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Attendance QR Code</h2>
@@ -79,19 +82,26 @@ function QRModal({ sessionId, onClose }) {
         <div style={{ padding: 20 }}>
           {loading ? (
             <div style={{ height: 250, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Generating...</div>
-          ) : (
-            <div style={{ background: 'white', padding: 20, borderRadius: 16, display: 'inline-block', marginBottom: 20 }}>
-              {/* Using a placeholder service for visual demo, but real token is embedded */}
-              <img 
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrToken}`} 
-                alt="Attendance QR" 
-                style={{ width: 200, height: 200 }}
-              />
+          ) : error ? (
+            <div style={{ height: 250, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--danger)', padding: 20 }}>
+               <AlertCircle size={48} style={{ marginBottom: 16 }} />
+               <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>{error}</p>
+               <button className="btn btn-secondary" style={{ marginTop: 20 }} onClick={getQR}>Try Again</button>
             </div>
+          ) : (
+            <>
+              <div style={{ background: 'white', padding: 20, borderRadius: 16, display: 'inline-block', marginBottom: 20 }}>
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrToken}`} 
+                  alt="Attendance QR" 
+                  style={{ width: 200, height: 200 }}
+                />
+              </div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary)' }}>
+                Refreshing in {timeLeft}s
+              </div>
+            </>
           )}
-          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary)' }}>
-            Refreshing in {timeLeft}s
-          </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: 10 }}>
             Students should scan this using their dashboard.
           </p>
@@ -109,7 +119,8 @@ export default function InstructorSessionsPage() {
   const [qrTarget, setQrTarget] = useState(null);
   const [editId, setEditId] = useState(null);
   const [toast, setToast] = useState(null);
-  const [form, setForm] = useState({ title:'', startTime:'', endTime:'', location:'Room 101', status:'upcoming', division: '' });
+  const [form, setForm] = useState({ title:'', startTime:'', endTime:'', location:'Room 101', status:'upcoming', division: '', instructor: '' });
+  const [stats, setStats] = useState({ assignedStudents: 0, totalSessions: 0, avgAttendance: '0%', recentRating: '0.0' });
 
   const fetchSessions = async () => {
     try {
@@ -123,8 +134,18 @@ export default function InstructorSessionsPage() {
     }
   };
 
+  const fetchStats = async () => {
+    try {
+      const data = await apiFetch('/reports/dashboard-stats');
+      setStats(data.data);
+    } catch (err) {
+      console.error('Failed to fetch stats:', err);
+    }
+  };
+
   useEffect(() => {
     fetchSessions();
+    fetchStats();
   }, []);
 
   const showToast = (msg, type = 'success') => {
@@ -139,7 +160,8 @@ export default function InstructorSessionsPage() {
       endTime: '', 
       location:'Room 101', 
       status:'upcoming',
-      division: user.divisions[0]?._id || user.divisions[0] || ''
+      division: user.divisions[0]?._id || user.divisions[0] || '',
+      instructor: user._id
     }); 
     setEditId(null); 
     setShowModal(true); 
@@ -199,10 +221,10 @@ export default function InstructorSessionsPage() {
       {qrTarget && <QRModal sessionId={qrTarget} onClose={() => setQrTarget(null)} />}
 
       <div className="stats-grid" style={{ marginBottom: 24 }}>
-        <StatCard label="Assigned Students" value={user.divisions.length > 0 ? "42" : "0"} sub="Active now" icon={Users} color="#025961"  />
-        <StatCard label="Total Sessions" value={sessions.length}  sub="Life-time" icon={CalendarDays} color="#168b96" />
-        <StatCard label="Avg Attendance" value="91%" sub="+5% this week" icon={CheckCircle} color="#00b894" />
-        <StatCard label="Recent Rating" value="4.9" sub="Excellent" icon={Star} color="#fdcb6e" />
+        <StatCard label="Assigned Students" value={stats.assignedStudents} sub="Active now" icon={Users} color="#025961"  />
+        <StatCard label="Total Sessions" value={stats.totalSessions}  sub="Life-time" icon={CalendarDays} color="#168b96" />
+        <StatCard label="Avg Attendance" value={stats.avgAttendance} sub="+5% this week" icon={CheckCircle} color="#00b894" />
+        <StatCard label="Recent Rating" value={stats.recentRating} sub="Excellent" icon={Star} color="#fdcb6e" />
       </div>
 
       <div className="card">
@@ -241,7 +263,7 @@ export default function InstructorSessionsPage() {
                     <td><Badge text={s.status} colorMap={STATUS_STYLE} /></td>
                     <td>
                       <div className="table-actions">
-                        {s.status === 'upcoming' && (
+                        {['upcoming', 'active'].includes(s.status.toLowerCase()) && (
                           <button className="action-btn" onClick={() => setQrTarget(s._id)} title="Show QR" style={{ color: 'var(--primary)', background: 'var(--primary-glow)' }}>
                             <QrCode size={15}/>
                           </button>
@@ -259,7 +281,7 @@ export default function InstructorSessionsPage() {
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div className="modal-overlay">
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{editId ? 'Edit Session' : 'Create New Session'}</h2>

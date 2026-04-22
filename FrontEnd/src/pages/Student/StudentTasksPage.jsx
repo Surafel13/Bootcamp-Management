@@ -17,8 +17,8 @@ export default function StudentTasksPage() {
   
   const [submissionForm, setSubmissionForm] = useState({
     githubLink: '',
-    externalLink: '',
-    notes: '',
+    fileUrl: '',
+    text: '',
   });
 
   const fetchData = async () => {
@@ -26,9 +26,10 @@ export default function StudentTasksPage() {
       setLoading(true);
       const [tasksData, subsData] = await Promise.all([
         apiFetch('/tasks'),
-        apiFetch('/submissions/me') // Assuming we add this endpoint or similar
+        apiFetch('/submissions/me')
       ]);
-      setTasks(tasksData.data.tasks);
+      console.log('Student Tasks Received:', tasksData.data.tasks);
+      setTasks(tasksData.data.tasks || []);
       setSubmissions(subsData.data.submissions || []);
     } catch (err) {
       console.error('Fetch error:', err);
@@ -55,14 +56,15 @@ export default function StudentTasksPage() {
     setActiveTask(task);
     setSubmissionForm({
       githubLink: existing?.githubLink || '',
-      externalLink: existing?.externalLink || '',
-      notes: existing?.notes || '',
+      fileUrl: existing?.fileUrl || '',
+      text: existing?.text || '',
     });
     setShowModal(true);
   };
 
-  const isDeadlinePassed = (deadline) => {
-    return new Date(deadline) < new Date();
+  const isDeadlinePassed = (task) => {
+    if (task.allowLateSubmission) return false;
+    return new Date(task.deadline) < new Date();
   };
 
   const handleSubmit = async (e) => {
@@ -115,12 +117,18 @@ export default function StudentTasksPage() {
                 {tasks.length === 0 ? (
                   <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40 }}>No tasks found for your division.</td></tr>
                 ) : tasks.map(task => {
-                  const deadlinePassed = isDeadlinePassed(task.deadline);
+                  const deadlinePassed = isDeadlinePassed(task);
                   const sub = getTaskSubmission(task._id);
                   const status = sub ? (sub.score !== undefined && sub.score !== null ? 'Graded' : 'Submitted') : 'Pending';
 
                   return (
-                    <tr key={task._id}>
+                    <tr 
+                      key={task._id} 
+                      onClick={() => openSubmitModal(task)}
+                      style={{ cursor: 'pointer', transition: 'background 0.2s' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
                       <td style={{ fontWeight: 600 }}>{task.title}</td>
                       <td style={{ color: deadlinePassed && status === 'Pending' ? 'var(--danger)' : 'var(--text-secondary)' }}>
                         {new Date(task.deadline).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
@@ -152,10 +160,10 @@ export default function StudentTasksPage() {
                         <button
                           className="btn btn-secondary"
                           style={{ padding: '8px 16px', fontSize: '0.85rem' }}
-                          onClick={() => openSubmitModal(task)}
-                          disabled={deadlinePassed && status === 'Pending'}
+                          onClick={(e) => { e.stopPropagation(); openSubmitModal(task); }}
+                          disabled={deadlinePassed}
                         >
-                          {deadlinePassed && status === 'Pending' ? 'Closed' : sub ? 'Update' : 'Submit'}
+                          {deadlinePassed ? 'Closed' : sub ? 'Update' : 'Submit'}
                         </button>
                       </td>
                     </tr>
@@ -177,44 +185,64 @@ export default function StudentTasksPage() {
               </div>
 
               <form onSubmit={handleSubmit} className="modal-form">
-                <div className="form-group">
-                  <label>GitHub Repository Link</label>
-                  <div className="search-box">
-                    <Code size={18} color="var(--text-muted)" />
-                    <input
-                      type="url"
-                      className="form-input"
-                      placeholder="https://github.com/username/repo"
-                      value={submissionForm.githubLink}
-                      onChange={(e) => setSubmissionForm({ ...submissionForm, githubLink: e.target.value })}
-                    />
+                {(!activeTask.allowedTypes || activeTask.allowedTypes.includes('github')) && (
+                  <div className="form-group">
+                    <label>GitHub Repository Link</label>
+                    <div className="search-box">
+                      <Code size={18} color="var(--text-muted)" />
+                      <input
+                        type="url"
+                        className="form-input"
+                        placeholder="https://github.com/username/repo"
+                        value={submissionForm.githubLink}
+                        onChange={(e) => setSubmissionForm({ ...submissionForm, githubLink: e.target.value })}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="form-group">
-                  <label>External Resource Link (Optional)</label>
-                  <div className="search-box">
-                    <LinkIcon size={18} color="var(--text-muted)" />
-                    <input
-                      type="url"
-                      className="form-input"
-                      placeholder="https://drive.google.com/..."
-                      value={submissionForm.externalLink}
-                      onChange={(e) => setSubmissionForm({ ...submissionForm, externalLink: e.target.value })}
-                    />
+                {(!activeTask.allowedTypes || activeTask.allowedTypes.includes('file')) && (
+                  <div className="form-group">
+                    <label>External Resource / File Link (Optional)</label>
+                    <div className="search-box">
+                      <LinkIcon size={18} color="var(--text-muted)" />
+                      <input
+                        type="url"
+                        className="form-input"
+                        placeholder="https://drive.google.com/..."
+                        value={submissionForm.fileUrl}
+                        onChange={(e) => setSubmissionForm({ ...submissionForm, fileUrl: e.target.value })}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="form-group">
-                  <label>Additional Notes</label>
+                {activeTask.allowedTypes?.includes('form') && activeTask.formLink && (
+                  <div className="form-group" style={{ marginBottom: 20 }}>
+                    <label>External Form Submission</label>
+                    <div style={{ padding: '16px', background: 'var(--bg-input)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 12 }}>
+                        Please fill out the required external form for this task. Once completed, you can add any notes below and submit.
+                      </p>
+                      <a href={activeTask.formLink} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: 8 }}>
+                        <LinkIcon size={16} /> Open Submission Form
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {(!activeTask.allowedTypes || activeTask.allowedTypes.includes('text') || activeTask.allowedTypes.includes('form') || activeTask.allowedTypes.includes('github') || activeTask.allowedTypes.includes('file')) && (
+                  <div className="form-group">
+                    <label>Additional Notes / Text</label>
                   <textarea
                     className="form-input"
                     rows="4"
                     placeholder="Notes for the instructor..."
-                    value={submissionForm.notes}
-                    onChange={(e) => setSubmissionForm({ ...submissionForm, notes: e.target.value })}
+                    value={submissionForm.text}
+                    onChange={(e) => setSubmissionForm({ ...submissionForm, text: e.target.value })}
                   />
                 </div>
+                )}
 
                 <div className="modal-actions">
                   <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>

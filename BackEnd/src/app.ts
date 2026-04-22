@@ -34,6 +34,9 @@ app.use(express.json());
 // Enable CORS
 app.use(cors());
 
+// Static Files
+app.use("/uploads", express.static("uploads"));
+
 app.use(
   morgan("combined", {
     stream: { write: (message) => logger.info(message.trim()) },
@@ -64,6 +67,14 @@ app.use("/api/groups", groupRoutes);
 app.use("/api/progress", progressRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/reports", reportRoutes);
+
+// Catch-all for undefined routes
+app.use((req, res) => {
+  res.status(404).json({
+    status: "error",
+    message: `Route ${req.originalUrl} not found on this server`,
+  });
+});
 
 // Error Handler
 app.use(errorHandler);

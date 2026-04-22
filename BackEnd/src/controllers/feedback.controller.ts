@@ -118,9 +118,49 @@ export const getMyFeedback = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
-// Admin view of all feedback
+// Student updates their own feedback
+export const updateFeedback = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+	const { id } = req.params;
+	const { rating, comment } = req.body;
+
+	const feedback = await Feedback.findOne({ _id: id, student: req.user!._id });
+	if (!feedback) {
+		return next(new AppError("Feedback not found or you don't have permission to edit it", 404));
+	}
+
+	// Check if session has ended more than 7 days ago (optional, but good for data integrity)
+	const session = await Session.findById(feedback.session);
+	if (session) {
+		const daysSinceEnd = (Date.now() - new Date(session.endTime).getTime()) / (1000 * 60 * 60 * 24);
+		if (daysSinceEnd > 7) {
+			return next(new AppError("Feedback can only be edited within 7 days of the session ending", 422));
+		}
+	}
+
+	if (rating) feedback.rating = rating;
+	if (comment !== undefined) feedback.comment = comment;
+
+	await feedback.save();
+
+	res.status(200).json({
+		status: "success",
+		data: { feedback },
+	});
+});
+
+// Admin view of all feedback (Filtered by division for division_admin)
 export const getAllFeedback = catchAsync(async (req: Request, res: Response) => {
-    const feedback = await Feedback.find()
+	const isSuperAdmin = req.user!.roles.includes("super_admin");
+	const filter: any = {};
+
+	if (!isSuperAdmin) {
+		// Get all sessions for this admin's divisions
+		const sessions = await Session.find({ division: { $in: req.user!.divisions } }).select("_id");
+		const sessionIds = sessions.map(s => s._id);
+		filter.session = { $in: sessionIds };
+	}
+
+    const feedback = await Feedback.find(filter)
         .populate("session", "title division")
         .sort("-createdAt");
 

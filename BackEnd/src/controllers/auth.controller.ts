@@ -57,6 +57,10 @@ export const login = catchAsync(
 			"7d",
 		);
 
+
+		const populatedUser = await User.findById(user._id).populate("divisions", "name description");
+		
+
 		if(!user.firstLogin) {
 			await User.updateOne({ _id: user._id }, { firstLogin: true });
 
@@ -67,18 +71,20 @@ export const login = catchAsync(
 			});
 		}
 
+
 		res.status(200).json({
 			status: "success",
 			accessToken,
 			refreshToken,
 			data: {
 				user: {
-					_id: user._id,
-					name: user.name,
-					email: user.email,
-					roles: user.roles,
-					divisions: user.divisions,
-					status: user.status,
+					_id: populatedUser!._id,
+					name: populatedUser!.name,
+					email: populatedUser!.email,
+					roles: populatedUser!.roles,
+					divisions: populatedUser!.divisions,
+					status: populatedUser!.status,
+					createdAt: populatedUser!.createdAt
 				},
 			},
 		});

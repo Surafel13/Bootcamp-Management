@@ -288,7 +288,7 @@ export default function UsersPage() {
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
+        <div className="modal-overlay">
           <div className="modal" style={{ maxWidth: 600 }}>
             <div className="modal-header">
               <h2>{editTarget ? 'Edit User' : 'Add New User'}</h2>
@@ -296,11 +296,11 @@ export default function UsersPage() {
             </div>
             <div className="modal-form form-grid">
               <div className="form-group">
-                <label>Full Name</label>
+                <label>Full Name <span style={{ color: 'var(--danger)' }}>*</span></label>
                 <input className="form-input" placeholder="Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
               </div>
               <div className="form-group">
-                <label>Email Address</label>
+                <label>Email Address <span style={{ color: 'var(--danger)' }}>*</span></label>
                 <input className="form-input" type="email" placeholder="email@university.edu" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
               </div>
 

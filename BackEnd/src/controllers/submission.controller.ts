@@ -53,6 +53,42 @@ export const submitTask = catchAsync(
 	},
 );
 
+// Student updates their submission (allowed only before deadline)
+export const updateSubmission = catchAsync(
+	async (req: Request, res: Response, next: NextFunction) => {
+		const { id } = req.params;
+		const { githubLink, fileUrl, text } = req.body;
+
+		const submission = await Submission.findById(id).populate("task");
+		if (!submission)
+			return next(new AppError("Submission not found", 404, { id: "Not found" }));
+
+		// Ownership check
+		if (submission.student.toString() !== req.user!._id.toString()) {
+			return next(new AppError("You do not have permission to update this submission", 403, {}));
+		}
+
+		const task = submission.task as any;
+		// Deadline enforcement
+		if (!task.allowLateSubmission && new Date() > task.deadline) {
+			return next(
+				new AppError("Submission deadline has passed. Cannot update.", 422, {
+					deadline: "No late updates allowed for this task",
+				}),
+			);
+		}
+
+		// Update fields
+		if (githubLink !== undefined) submission.githubLink = githubLink;
+		if (fileUrl !== undefined) submission.fileUrl = fileUrl;
+		if (text !== undefined) submission.text = text;
+		
+		await submission.save();
+
+		res.status(200).json({ status: "success", data: { submission } });
+	},
+);
+
 // Instructor/admin grades a submission
 export const gradeSubmission = catchAsync(
 	async (req: Request, res: Response, next: NextFunction) => {
@@ -103,13 +139,31 @@ export const getAllSubmissions = catchAsync(async (req: Request, res: Response) 
 	const { task, student, status } = req.query;
 	const filter: Record<string, any> = {};
 
-	if (task) filter.task = task;
-	if (student) filter.student = student;
+	const isSuperAdmin = req.user!.roles.includes("super_admin");
+	const isDivisionAdmin = req.user!.roles.includes("division_admin");
+
+	if (isSuperAdmin) {
+		if (task) filter.task = task;
+		if (student) filter.student = student;
+	} else if (isDivisionAdmin) {
+		// Find tasks in the admin's divisions
+		const divisionTasks = await Task.find({ division: { $in: req.user!.divisions } }).select("_id");
+		const taskIds = divisionTasks.map(t => t._id);
+		
+		filter.task = { $in: taskIds };
+		if (task && taskIds.includes(task as any)) filter.task = task;
+		if (student) filter.student = student;
+	}
+
 	if (status) filter.status = status;
 
 	const submissions = await Submission.find(filter)
 		.populate("student", "name email")
-		.populate("task", "title deadline division")
+		.populate({
+			path: "task",
+			select: "title deadline division maxScore",
+			populate: { path: "division", select: "name" }
+		})
 		.sort("-submittedAt");
 
 	res.status(200).json({
@@ -124,19 +178,26 @@ export const getSubmissionById = catchAsync(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const submission = await Submission.findById(req.params.id)
 			.populate("student", "name email")
-			.populate("task", "title deadline");
+			.populate("task", "title deadline division");
 
 		if (!submission)
 			return next(new AppError("Submission not found", 404, { id: "Not found" }));
 
-		// Students who are not admins can only view their own
-		const isAdmin = req.user!.roles.some(r => ["division_admin", "super_admin"].includes(r));
-		if (
-			req.user!.roles.includes("student") &&
-			!isAdmin &&
-			submission.student.toString() !== req.user!._id.toString()
-		) {
-			return next(new AppError("You do not have permission to view this submission", 403, {}));
+		const isStudent = req.user!.roles.includes("student");
+		const isSuperAdmin = req.user!.roles.includes("super_admin");
+		const isDivisionAdmin = req.user!.roles.includes("division_admin");
+		const task = submission.task as any;
+
+		if (isStudent && !isSuperAdmin && !isDivisionAdmin) {
+			if ((submission.student as any)._id.toString() !== req.user!._id.toString()) {
+				return next(new AppError("You do not have permission to view this submission", 403, {}));
+			}
+		} else if (isDivisionAdmin && !isSuperAdmin) {
+			if (!req.user!.divisions.some(d => d.toString() === task.division.toString())) {
+				if (!(isStudent && (submission.student as any)._id.toString() === req.user!._id.toString())) {
+					return next(new AppError("You do not have permission to view this submission", 403, {}));
+				}
+			}
 		}
 
 		res.status(200).json({ status: "success", data: { submission } });
@@ -145,7 +206,20 @@ export const getSubmissionById = catchAsync(
 
 // All submissions for a specific task (instructor/admin)
 export const getSubmissionsByTask = catchAsync(
-	async (req: Request, res: Response) => {
+	async (req: Request, res: Response, next: NextFunction) => {
+		const isSuperAdmin = req.user!.roles.includes("super_admin");
+		const isDivisionAdmin = req.user!.roles.includes("division_admin");
+
+		if (isDivisionAdmin && !isSuperAdmin) {
+			const taskCheck = await Task.findById(req.params.taskId);
+			if (!taskCheck) {
+				return next(new AppError("Task not found", 404, {}));
+			}
+			if (!req.user!.divisions.some(d => d.toString() === taskCheck.division.toString())) {
+				return next(new AppError("You do not have permission to view submissions for this task", 403, {}));
+			}
+		}
+
 		const submissions = await Submission.find({ task: req.params.taskId })
 			.populate("student", "name email")
 			.sort("-submittedAt");

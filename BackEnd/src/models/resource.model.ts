@@ -3,6 +3,7 @@ import type { IResource } from "../types/types.js";
 
 const resourceSchema = new mongoose.Schema<IResource>({
 	title: { type: String, required: true },
+	description: String,
 	fileUrl: String,
 	externalLink: String,
 	type: {

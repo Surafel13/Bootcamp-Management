@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Video, ExternalLink, Download, BookOpen, Search } from 'lucide-react';
-import apiFetch from '../../utils/api';
+import apiFetch, { UPLOADS_URL } from '../../utils/api';
 
 export default function Resources() {
   const [activeFilter, setActiveFilter] = useState('All');
@@ -12,7 +12,8 @@ export default function Resources() {
     const fetchResources = async () => {
       try {
         const data = await apiFetch('/resources');
-        setResources(data.data.resources || []);
+        const sorted = (data.data.resources || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        setResources(sorted);
       } catch (err) {
         console.error('Failed to fetch resources:', err);
       } finally {
@@ -51,7 +52,11 @@ export default function Resources() {
     try {
       await apiFetch(`/resources/${resource._id}/download`, { method: 'POST' });
     } catch (err) { /* silent - still open */ }
-    if (resource.url) window.open(resource.url, '_blank');
+    let url = resource.externalLink || resource.fileUrl;
+    if (url && !url.startsWith('http')) {
+      url = `${UPLOADS_URL}/${url}`;
+    }
+    if (url) window.open(url, '_blank');
   };
 
   return (

@@ -17,7 +17,7 @@ const PAGE_META = {
   settings: { title: 'Settings', sub: 'Configure your preferences' },
 };
 
-export default function StudentTopbar({ activePage }) {
+export default function StudentTopbar({ activePage, onNavigate }) {
   const { isDark, toggle } = useTheme();
   const { user, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);

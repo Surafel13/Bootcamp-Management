@@ -9,7 +9,9 @@ const groupSchema = new mongoose.Schema<IGroup>({
 		ref: "Division",
 		required: true,
 	},
+	leader: String,
 	members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+	memberNames: [String],
 	createdBy: {
 		type: mongoose.Schema.Types.ObjectId,
 		ref: "User",

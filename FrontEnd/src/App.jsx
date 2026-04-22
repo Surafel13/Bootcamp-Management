@@ -34,14 +34,11 @@ function SuperAdminDashboard() {
     switch (activePage) {
       case 'analytics': return <AnalyticsPage />;
       case 'users': return <UsersPage />;
-      case 'groups': return <GroupsPage />;
       case 'master-schedule': return <MasterSchedulePage />;
-      case 'audit': return <AuditLogsPage />;
       case 'divisions': return <DivisionsPage />;
       case 'feedback': return <FeedbackPage />;
       case 'notifications': return <NotificationsPage />;
       case 'profile': return <ProfilePage />;
-      case 'settings': return <SettingsPage />;
       default: return <AnalyticsPage />;
     }
   };

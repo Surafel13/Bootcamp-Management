@@ -5,7 +5,8 @@ import {
     getAllSubmissions, 
     getSubmissionById, 
     getSubmissionsByTask, 
-    getMySubmissions 
+    getMySubmissions,
+    updateSubmission 
 } from "../controllers/submission.controller.js";
 import { protect, restrictTo } from "../middlewares/auth.middleware.js";
 
@@ -14,6 +15,7 @@ const router: Router = Router();
 router.use(protect);
 
 router.post("/", restrictTo("student"), submitTask);
+router.patch("/:id", restrictTo("student"), updateSubmission);
 router.get("/me", restrictTo("student"), getMySubmissions);
 router.get("/:id", getSubmissionById);
 
