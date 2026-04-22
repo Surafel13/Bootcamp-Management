@@ -1,42 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, } from 'react';
 import { Bell, Check, Clock, Calendar, AlertCircle, Award } from 'lucide-react';
-import apiFetch from '../../utils/api';
+import { useNotifications } from '../../context/NotificationContext';
 
 export default function Notifications() {
-  const [notifications, setNotifications] = useState([]);
   const [filter, setFilter] = useState('All');
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const data = await apiFetch('/notifications');
-        setNotifications(data.data.notifications || []);
-      } catch (err) {
-        console.error('Failed to load notifications:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchNotifications();
-  }, []);
+  const { notifications, loading, refetch , markAsRead, markAllAsRead } = useNotifications();
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
   const filtered = notifications.filter(n => filter === 'All' || (filter === 'Unread' && !n.isRead));
-
-  const markAsRead = async (id) => {
-    try {
-      await apiFetch(`/notifications/${id}/read`, { method: 'PATCH' });
-      setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
-    } catch (err) { console.error(err); }
-  };
-
-  const markAllAsRead = async () => {
-    try {
-      await apiFetch('/notifications/read-all', { method: 'PATCH' });
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-    } catch (err) { console.error(err); }
-  };
 
   const getTypeIcon = (type) => {
     switch (type) {

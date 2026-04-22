@@ -90,7 +90,7 @@ function AppInner() {
   }
 
   if (user.roles.includes('student')) {
-    return <StudentDashboard />;
+    return <NotificationProvider><StudentDashboard /></NotificationProvider>;
   }
 
   return <Navigate to="/login" replace />;
@@ -100,11 +100,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <NotificationProvider>
-          <Router>        {/* ← This fixes the useNavigate error */}
-            <AppInner />
-          </Router>
-        </NotificationProvider>
+        <Router>        {/* ← This fixes the useNavigate error */}
+          <AppInner />
+        </Router>
       </AuthProvider>
     </ThemeProvider>
   );
