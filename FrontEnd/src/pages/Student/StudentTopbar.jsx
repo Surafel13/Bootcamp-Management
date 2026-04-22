@@ -15,7 +15,7 @@ const PAGE_META = {
   settings: { title: 'Settings', sub: 'Configure your preferences' },
 };
 
-export default function StudentTopbar({ activePage }) {
+export default function StudentTopbar({ activePage, onNavigate }) {
   const { isDark, toggle } = useTheme();
   const { user, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -69,13 +69,9 @@ export default function StudentTopbar({ activePage }) {
 
           {showDropdown && (
             <div className="dropdown-menu">
-              <button className="dropdown-item" onClick={() => setShowDropdown(false)}>
+              <button className="dropdown-item" onClick={() => { setShowDropdown(false); onNavigate('profile'); }}>
                 <User size={16} />
                 <span>My Profile</span>
-              </button>
-              <button className="dropdown-item" onClick={() => setShowDropdown(false)}>
-                <Settings size={16} />
-                <span>Account Settings</span>
               </button>
               <div className="dropdown-divider" />
               <button className="dropdown-item danger" onClick={logout}>

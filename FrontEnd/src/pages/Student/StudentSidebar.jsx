@@ -15,7 +15,6 @@ const NAV = [
   { key: 'groups', label: 'Groups', icon: Users },
   { key: 'notifications', label: 'Notifications', icon: Bell },
   { key: 'profile', label: 'Profile', icon: User },
-  { key: 'settings', label: 'Settings', icon: Settings },
 ];
 
 export default function StudentSidebar({ active, onNavigate, isCollapsed, onToggle }) {
