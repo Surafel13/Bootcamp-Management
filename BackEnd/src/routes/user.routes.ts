@@ -18,7 +18,7 @@ router.use(protect);
 router.get("/me", getMe);
 
 // Admin only routes
-router.use(restrictTo("super_admin"));
+router.use(restrictTo("super_admin", "division_admin"));
 
 router.post("/", createUser);
 router.get("/", getAllUsers);
