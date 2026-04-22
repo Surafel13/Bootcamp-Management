@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import User from "../models/user.model.js";
+import Notification from "../models/notification.model.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
@@ -55,6 +56,16 @@ export const login = catchAsync(
 			env.JWT_REFRESH_SECRET,
 			"7d",
 		);
+
+		if(!user.firstLogin) {
+			await User.updateOne({ _id: user._id }, { firstLogin: true });
+
+			await Notification.create({
+				user: user._id,
+				message: `Welcome to CSEC!, you're now a member of the CSEC community. Please change your default password.!`,
+				type: "general",
+			});
+		}
 
 		res.status(200).json({
 			status: "success",

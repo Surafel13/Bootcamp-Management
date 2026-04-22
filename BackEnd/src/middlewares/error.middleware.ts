@@ -4,7 +4,7 @@ import  logger  from "../utils/logger.js"
 import  AppError from "../utils/appError.js"
 
 export const errorHandler = (err: any, _req: Request, res: Response, _next: NextFunction) => {
-  logger.error(err)
+  logger.error(`Error: ${err}`)
 
   // Default error
   let statusCode = 500
