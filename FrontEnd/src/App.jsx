@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider, useNotifications } from './context/NotificationContext';
 
 import LoginPage from './pages/LoginPage.jsx';
 import Sidebar from './components/Sidebar.jsx';
@@ -89,7 +90,7 @@ function AppInner() {
   }
 
   if (user.roles.includes('student')) {
-    return <StudentDashboard />;
+    return <NotificationProvider><StudentDashboard /></NotificationProvider>;
   }
 
   return <Navigate to="/login" replace />;

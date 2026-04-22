@@ -1,42 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Bell, Check, Clock, Calendar, AlertCircle, Award } from 'lucide-react';
-import apiFetch from '../../utils/api';
+import React, { useState, } from 'react';
+import { Bell, Check, Clock, Calendar, AlertCircle, Award, RefreshCcw } from 'lucide-react';
+import { useNotifications } from '../../context/NotificationContext';
 
 export default function Notifications() {
-  const [notifications, setNotifications] = useState([]);
   const [filter, setFilter] = useState('All');
-  const [loading, setLoading] = useState(true);
+  const { notifications, loading, count: unreadCount, refetch, markAsRead, markAllAsRead } = useNotifications();
 
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const data = await apiFetch('/notifications');
-        setNotifications(data.data.notifications || []);
-      } catch (err) {
-        console.error('Failed to load notifications:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchNotifications();
-  }, []);
-
-  const unreadCount = notifications.filter(n => !n.isRead).length;
-  const filtered = notifications.filter(n => filter === 'All' || (filter === 'Unread' && !n.isRead));
-
-  const markAsRead = async (id) => {
-    try {
-      await apiFetch(`/notifications/${id}/read`, { method: 'PATCH' });
-      setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
-    } catch (err) { console.error(err); }
-  };
-
-  const markAllAsRead = async () => {
-    try {
-      await apiFetch('/notifications/read-all', { method: 'PATCH' });
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-    } catch (err) { console.error(err); }
-  };
+  const filtered = notifications.filter(n => filter === 'All' || (filter === 'Unread' && !n.read));
 
   const getTypeIcon = (type) => {
     switch (type) {
@@ -107,14 +77,14 @@ export default function Notifications() {
           ) : filtered.map(n => (
             <div key={n._id} className="card" style={{
               padding: '24px', position: 'relative',
-              borderLeft: n.isRead ? 'none' : `5px solid ${getTypeColor(n.type)}`,
-              background: n.isRead ? 'var(--bg-card)' : 'var(--bg-active)',
+              borderLeft: n.read ? 'none' : `5px solid ${getTypeColor(n.type)}`,
+              background: n.read ? 'var(--bg-card)' : 'var(--bg-active)',
             }}>
               <div style={{ display: 'flex', gap: '18px' }}>
                 <div style={{
                   height: '52px', width: '52px', borderRadius: '14px',
-                  background: n.isRead ? 'var(--bg-hover)' : 'var(--primary-light)',
-                  color: n.isRead ? 'var(--text-muted)' : getTypeColor(n.type),
+                  background: n.read ? 'var(--bg-hover)' : 'var(--primary-light)',
+                  color: n.read ? 'var(--text-muted)' : getTypeColor(n.type),
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                 }}>
                   {getTypeIcon(n.type)}
@@ -124,7 +94,7 @@ export default function Notifications() {
                   <p style={{ color: 'var(--text-secondary)', lineHeight: '1.55', marginBottom: '8px' }}>{n.message}</p>
                   <p style={{ fontSize: '0.83rem', color: 'var(--text-muted)' }}>{timeAgo(n.createdAt)}</p>
                 </div>
-                {!n.isRead && (
+                {!n.read && (
                   <button onClick={() => markAsRead(n._id)} className="btn btn-secondary"
                     style={{ padding: '8px 12px', height: 'fit-content', alignSelf: 'flex-start' }} title="Mark as read">
                     <Check size={18} />

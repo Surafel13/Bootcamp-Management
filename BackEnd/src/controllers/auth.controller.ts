@@ -58,7 +58,8 @@ export const login = catchAsync(
 		);
 
 		if(!user.firstLogin) {
-			user.firstLogin = true;
+			await User.updateOne({ _id: user._id }, { firstLogin: true });
+
 			await Notification.create({
 				user: user._id,
 				message: `Welcome to CSEC!, you're now a member of the CSEC community. Please change your default password.!`,
