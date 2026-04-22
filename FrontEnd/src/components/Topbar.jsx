@@ -2,18 +2,20 @@ import { useState } from 'react';
 import { Bell, User, LogOut, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { Link } from 'react-router-dom';
+import { useNotifications } from '../context/NotificationContext';
 
 const PAGE_TITLES = {
-  analytics:       { title: 'Super Admin Dashboard', sub: 'System overview and management' },
-  users:           { title: 'User Management',       sub: 'Manage platform users and roles' },
-  groups:          { title: 'Group Management',      sub: 'Manage student project groups' },
-  divisions:       { title: 'Division Management',   sub: 'Manage bootcamp divisions' },
-  'master-schedule': { title: 'Master Schedule',     sub: 'Global view and attendance overrides' },
-  audit:           { title: 'Audit Logs',            sub: 'System security and action tracking' },
-  feedback:        { title: 'All Feedback',          sub: 'Student feedback and ratings' },
-  notifications:   { title: 'Notifications',         sub: 'Stay updated with system alerts' },
-  profile:         { title: 'My Profile',            sub: 'Manage your account preferences' },
-  settings:        { title: 'Settings',              sub: 'Configure system preferences' },
+  analytics: { title: 'Super Admin Dashboard', sub: 'System overview and management' },
+  users: { title: 'User Management', sub: 'Manage platform users and roles' },
+  groups: { title: 'Group Management', sub: 'Manage student project groups' },
+  divisions: { title: 'Division Management', sub: 'Manage bootcamp divisions' },
+  'master-schedule': { title: 'Master Schedule', sub: 'Global view and attendance overrides' },
+  audit: { title: 'Audit Logs', sub: 'System security and action tracking' },
+  feedback: { title: 'All Feedback', sub: 'Student feedback and ratings' },
+  notifications: { title: 'Notifications', sub: 'Stay updated with system alerts' },
+  profile: { title: 'My Profile', sub: 'Manage your account preferences' },
+  settings: { title: 'Settings', sub: 'Configure system preferences' },
 };
 
 export default function Topbar({ activePage, notifCount = 3 }) {
@@ -21,6 +23,7 @@ export default function Topbar({ activePage, notifCount = 3 }) {
   const { isDark, toggle } = useTheme();
   const [showDropdown, setShowDropdown] = useState(false);
   const info = PAGE_TITLES[activePage] || PAGE_TITLES.analytics;
+  const notifyCount = useNotifications.count;
 
   return (
     <header className="topbar">
@@ -50,7 +53,7 @@ export default function Topbar({ activePage, notifCount = 3 }) {
 
           <button className="icon-btn" id="notif-btn" title="Notifications">
             <Bell size={18} />
-            {notifCount > 0 && <span className="notif-badge" />}
+            <span className="notif-badge" style={{ color: notifyCount > 0 ? 'var(--text-on-primary)' : 'var(--text-muted)' }}>{notifyCount > 0 && notifyCount}</span>
           </button>
         </div>
 
@@ -68,14 +71,14 @@ export default function Topbar({ activePage, notifCount = 3 }) {
 
           {showDropdown && (
             <div className="dropdown-menu">
-              <button className="dropdown-item" onClick={() => setShowDropdown(false)}>
+              <Link className="dropdown-item" to="/profile" style={{ textDecoration: 'none' }} onClick={() => setShowDropdown(false)}>
                 <User size={16} />
                 <span>My Profile</span>
-              </button>
-              <button className="dropdown-item" onClick={() => setShowDropdown(false)}>
+              </Link>
+              <Link className="dropdown-item" to="/settings" style={{ textDecoration: 'none' }} onClick={() => setShowDropdown(false)}>
                 <Settings size={16} />
                 <span>Account Settings</span>
-              </button>
+              </Link>
               <div className="dropdown-divider" />
               <button className="dropdown-item danger" onClick={logout}>
                 <LogOut size={16} />

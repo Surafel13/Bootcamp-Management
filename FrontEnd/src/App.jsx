@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider, useNotifications } from './context/NotificationContext';
 
 import LoginPage from './pages/LoginPage.jsx';
 import Sidebar from './components/Sidebar.jsx';
@@ -99,9 +100,11 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Router>        {/* ← This fixes the useNavigate error */}
-          <AppInner />
-        </Router>
+        <NotificationProvider>
+          <Router>        {/* ← This fixes the useNavigate error */}
+            <AppInner />
+          </Router>
+        </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>
   );
