@@ -19,6 +19,7 @@ import groupRoutes from "./routes/group.routes.js";
 import progressRoutes from "./routes/progress.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import reportRoutes from "./routes/report.routes.js";
+import bootcampRoutes from "./routes/bootcamp.routes.js";
 
 import { validateEnv } from "./utils/validateEnv.js";
 import logger from "./utils/logger.js";
@@ -55,6 +56,7 @@ app.use("/api", protect, logAction);
 
 app.use("/api/users", userRoutes);
 app.use("/api/divisions", divisionRoutes);
+app.use("/api/bootcamps", bootcampRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/tasks", taskRoutes);

@@ -12,6 +12,8 @@ import env from "../config/env.js";
 import type { ISession } from "../types/types.js";
 import { Types } from "mongoose";
 import * as QRCode from "qrcode";
+import { validateSession } from "../utils/validators/sessions.validators.js";
+
 
 interface TokenPayload extends jwt.JwtPayload {
 	sessionId: Types.ObjectId;
@@ -25,7 +27,13 @@ const activeSessionQR = new Map<string, { token: string, image: string, expiresA
 
 export const createSession = catchAsync(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const { division, startTime, endTime, instructor } = req.body;
+		const validationResult = validateSession(req.body);
+
+		if (!validationResult.success) {
+			return next(new AppError("Validation failed", 400, validationResult.error.issues));
+		}
+
+		const { division, startTime, endTime, instructor } =  validationResult.data;
 
 		const start = new Date(startTime);
 		const end = new Date(endTime);

@@ -2,6 +2,11 @@ import mongoose from "mongoose";
 import type { ISession } from "../types/types.js";
 
 const sessionSchema = new mongoose.Schema<ISession>({
+	bootcamp: {
+		type: mongoose.Schema.Types.ObjectId,
+		ref: "Bootcamp",
+		required: true,
+	},
 	title: { type: String, required: true },
 	description: String,
 	location: String,

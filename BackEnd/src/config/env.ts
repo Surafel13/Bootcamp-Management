@@ -13,7 +13,16 @@ const env = {
   EMAIL_PORT: process.env.EMAIL_PORT || "465",
   EMAIL_USER: process.env.EMAIL_USER || "",
   EMAIL_PASS: process.env.EMAIL_PASS || "",
+  EMAIL_FROM: process.env.EMAIY_FROM || "noreply@csec.com",
+  REDIS_HOST: process.env.REDIS_HOST || "localhost",
+  REDIS_PORT: process.env.REDIS_PORT ||  "6379",
+  REDIS_PASSWORD: process.env.REDIS_PASSWORD || "",
+  REDIS_TLS: process.env.REDIS_TLS || "false",
   FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:5173",
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || "",
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || "",
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || "",
+  CLOUDINARY_UPLOAD_FOLDER: process.env.CLOUDINARY_UPLOAD_FOLDER || "bootcamp-management",
 };
 
 export default env;

@@ -52,8 +52,11 @@ export default function ProfilePage() {
   };
 
   const initials = user.name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
-  const primaryRole = user.roles[0].replace('_', ' ');
-  const joinDate = new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const primaryRole = user.roles?.[0]?.replace('_', ' ') || 'Student';
+  const joinDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently';
+
+  // Get unique division names from memberships
+  const userDivisions = user.memberships?.map(m => m.division?.name || 'Unknown') || [];
 
   return (
     <div className="page-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -112,12 +115,14 @@ export default function ProfilePage() {
             justifyContent: 'center',
             gap: 8
           }}>
-            <Shield size={16} color="var(--primary)" /> {primaryRole}
+            {user.roles.includes('super_admin') && <><Shield size={16} color="var(--danger)" /> {primaryRole}</> }
+            {user.roles.includes('division_admin') && <><Shield size={16} color="var(--info)" /> {primaryRole}</> }
+            {user.roles.includes('student') && <><User size={16} color="var(--primary)" /> {primaryRole}</> }
           </p>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-            {user.divisions.map(d => (
-              <span key={d._id || d} style={{
+            {userDivisions.map((divisionName, idx) => (
+              <span key={idx} style={{
                 background: 'var(--primary-glow)',
                 color: 'var(--primary)',
                 padding: '4px 14px',
@@ -125,7 +130,7 @@ export default function ProfilePage() {
                 fontSize: '0.75rem',
                 fontWeight: 700
               }}>
-                {d.name || 'Assigned Division'}
+                {divisionName}
               </span>
             ))}
           </div>
@@ -157,7 +162,7 @@ export default function ProfilePage() {
               <ProfileIcon icon={Briefcase} />
               <div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '2px' }}>Account Status</p>
-                <p style={{ color: 'var(--text-primary)', fontWeight: 500, textTransform: 'capitalize' }}>{user.status}</p>
+                <p style={{ color: 'var(--text-primary)', fontWeight: 500, textTransform: 'capitalize' }}>{user.status || 'Active'}</p>
               </div>
             </div>
 

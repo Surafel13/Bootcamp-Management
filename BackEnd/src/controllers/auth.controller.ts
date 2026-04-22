@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import User from "../models/user.model.js";
+import Notification from "../models/notification.model.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
@@ -56,8 +57,21 @@ export const login = catchAsync(
 			"7d",
 		);
 
+
 		const populatedUser = await User.findById(user._id).populate("divisions", "name description");
 		
+
+		if(!user.firstLogin) {
+			await User.updateOne({ _id: user._id }, { firstLogin: true });
+
+			await Notification.create({
+				user: user._id,
+				message: `Welcome to CSEC!, you're now a member of the CSEC community. Please change your default password.!`,
+				type: "general",
+			});
+		}
+
+
 		res.status(200).json({
 			status: "success",
 			accessToken,
@@ -128,13 +142,13 @@ export const forgotPassword = catchAsync(
 		user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 		await user.save({ validateBeforeSave: false });
 
-		const resetURL = `${env.FRONTEND_URL}/reset-password/${resetToken}`;
+		const resetURL = `http://localhost:5173/reset-password/${resetToken}`;
 
 		try {
 			await sendEmail(
 				user.email,
 				"BMS – Password Reset Request",
-				`You requested a password reset. Click the link below to reset your password (valid for 1 hour):\n\n${resetURL}\n\nIf you did not request this, please ignore this email.`,
+				`You did not requested a password reset. Click the link below to reset your password (valid for 1 hour):\n\n${resetURL}\n\nIf you did not request this, please ignore this email.`,
 			);
 			res.status(200).json({
 				status: "success",

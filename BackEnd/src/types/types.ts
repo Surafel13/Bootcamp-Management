@@ -1,4 +1,5 @@
 import { Document, Types } from "mongoose";
+import type { Multer } from "multer";
 
 declare global {
 	namespace Express {
@@ -8,20 +9,49 @@ declare global {
 	}
 }
 
+export interface IMembership {
+  role: "division_admin" | "student";
+  division: Types.ObjectId;
+  joinedAt?: Date;
+}
+
 export interface IUser extends Document {
 	name: string;
 	email: string;
 	password: string;
 	roles: ("super_admin" | "division_admin" | "student")[];
+	firstLogin: boolean;
+	memberships: IMembership[];
 	divisions: Types.ObjectId[];
 	status: "active" | "suspended" | "graduated";
+	isPasswordChanged: boolean;
 	passwordResetToken?: string;
 	passwordResetExpires?: Date;
 	createdAt: Date;
+	getRoleInDivision?: (divisionId: string) => string | null;
+  isInDivision?: (divisionId: string) => boolean;
 	id: string;
 }
 
+export interface IBootcamp extends Document {
+	name: string;
+	description: string;
+	duration: string;
+	startDate: Date;
+	endDate: Date;
+	division: Types.ObjectId;
+	creator: Types.ObjectId;
+}
+
+export interface IEnrollment extends Document {
+	student: Types.ObjectId | IUser;
+	bootcamp: Types.ObjectId | IBootcamp;
+	status: "active" | "dropped" | "completed";
+	createdAt: Date;
+}
+
 export interface ISession extends Document {
+	bootcamp: Types.ObjectId | IBootcamp;
 	title: string;
 	description?: string;
 	location?: string;
@@ -36,6 +66,7 @@ export interface ISession extends Document {
 }
 
 export interface ITask extends Document {
+	bootcamp: Types.ObjectId | IBootcamp;
 	title: string;
 	description: string;
 	deadline: Date;

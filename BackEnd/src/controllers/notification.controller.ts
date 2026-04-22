@@ -20,6 +20,11 @@ export const getMyNotifications = catchAsync(async (req: Request, res: Response)
 // Mark a single notification as read
 export const markAsRead = catchAsync(
 	async (req: Request, res: Response, next: NextFunction) => {
+		const { id } = req.params;
+
+		if (!id)
+			return next(new AppError("Notification ID required", 400, { id: "Required" }));
+
 		const notification = await Notification.findOneAndUpdate(
 			{ _id: new Types.ObjectId(req.params.id as string), user: req.user!._id },
 			{ read: true },

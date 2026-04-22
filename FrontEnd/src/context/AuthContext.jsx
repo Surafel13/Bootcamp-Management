@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 
 const AuthContext = createContext();
 
@@ -6,15 +6,7 @@ const API_URL = 'http://localhost:3000/api';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Session persistence disabled as requested: 
-    // The app will now start at the login page every time it is opened.
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    setLoading(false);
-  }, []);
+  const [loading, setLoading] = useState(false);
 
   const login = async (email, password) => {
     try {
@@ -32,8 +24,9 @@ export function AuthProvider({ children }) {
 
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(userData));
-        
+
         setUser(userData);
+
         return { success: true };
       } else {
         return { success: false, message: data.message || 'Login failed' };
@@ -52,7 +45,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{ user, login, logout, loading }}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 }

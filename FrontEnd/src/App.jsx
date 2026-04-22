@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider, useNotifications } from './context/NotificationContext';
 
 import LoginPage from './pages/LoginPage.jsx';
 import Sidebar from './components/Sidebar.jsx';
@@ -19,6 +20,8 @@ import FeedbackPage from './pages/FeedbackPage.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 import InstructorDashboard from './pages/Instructor/InstructorDashboard.jsx';
 import StudentDashboard from './pages/Student/StudentDashboard.jsx';
@@ -67,6 +70,8 @@ function AppInner() {
     return (
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
@@ -82,7 +87,7 @@ function AppInner() {
   }
 
   if (user.roles.includes('student')) {
-    return <StudentDashboard />;
+    return <NotificationProvider><StudentDashboard /></NotificationProvider>;
   }
 
   return <Navigate to="/login" replace />;

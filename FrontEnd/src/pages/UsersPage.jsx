@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Search, Plus, Pencil, Trash2, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import apiFetch from '../utils/api';
 
 const ROLES = ['super_admin', 'division_admin', 'student'];
@@ -52,6 +52,7 @@ function Toast({ msg, type = 'success' }) {
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [divisions, setDivisions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -60,11 +61,18 @@ export default function UsersPage() {
   const [editTarget, setEditTarget] = useState(null);
   const [toast, setToast] = useState(null);
 
-  const [form, setForm] = useState({ name: '', email: '', password: '', roles: ['student'], divisions: [], status: 'active' });
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    roles: ['student'],
+    memberships: [],  // Changed from divisions
+    status: 'active'
+  });
 
   const fetchUsers = async () => {
     try {
       const data = await apiFetch('/users');
+      console.log(data);
       setUsers(data.data.users);
     } catch (err) {
       showToast(err.message, 'error');
@@ -102,18 +110,23 @@ export default function UsersPage() {
   };
 
   const openAdd = () => {
-    setForm({ name: '', email: '', password: '', roles: ['student'], divisions: [], status: 'active' });
+    setForm({ name: '', email: '', memberships: [], status: 'active' });
     setEditTarget(null);
     setShowModal(true);
   };
 
   const openEdit = (user) => {
-    setForm({ 
-      name: user.name, 
-      email: user.email, 
-      roles: user.roles, 
-      divisions: user.divisions.map(d => d._id || d), 
-      status: user.status 
+    // Convert memberships to form format
+    const memberships = user.memberships?.map(m => ({
+      division: m.division?._id || m.division,
+      role: m.role
+    })) || [];
+
+    setForm({
+      name: user.name,
+      email: user.email,
+      memberships: memberships,
+      status: user.status
     });
     setEditTarget(user._id);
     setShowModal(true);
@@ -122,43 +135,79 @@ export default function UsersPage() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
     try {
-      await apiFetch(`/users/${id}`, { method: 'DELETE' });
-      setUsers(prev => prev.filter(a => a._id !== id));
-      showToast('User removed successfully.');
+      const response = await apiFetch(`/users/${id}`, { method: 'DELETE' });
+      if (response && Object.keys(response).length > 0) {
+        setUsers(prev => prev.filter(a => a._id !== id));
+        showToast('User removed successfully.');
+      } else {
+        setUsers(prev => prev.filter(a => a._id !== id));
+        showToast('User removed successfully.');
+      }
     } catch (err) {
-      showToast(err.message, 'error');
+      if (err.message.includes('unexpected end of data')) {
+        setUsers(prev => prev.filter(a => a._id !== id));
+        showToast('User removed successfully.');
+      } else {
+        showToast(err.message, 'error');
+      }
     }
   };
 
   const handleSave = async () => {
     if (!form.name || !form.email) return;
-
-    // Division is mandatory for everyone except Super Admin
-    if (!form.roles.includes('super_admin') && (!form.divisions || form.divisions.length === 0)) {
-      showToast('Please select a division for this user.', 'error');
+    if (form.memberships.length === 0) {
+      showToast('Please add at least one membership', 'error');
       return;
     }
-    
+
     try {
       if (editTarget) {
         const data = await apiFetch(`/users/${editTarget}`, {
           method: 'PATCH',
-          body: JSON.stringify(form)
+          body: JSON.stringify({
+            name: form.name,
+            email: form.email,
+            memberships: form.memberships,
+            status: form.status
+          })
         });
         setUsers(prev => prev.map(u => u._id === editTarget ? data.data.user : u));
         showToast('User updated successfully.');
       } else {
         const data = await apiFetch('/users', {
           method: 'POST',
-          body: JSON.stringify(form)
+          body: JSON.stringify({
+            name: form.name,
+            email: form.email,
+            memberships: form.memberships,
+            status: form.status
+          })
         });
         setUsers(prev => [...prev, data.data.user]);
-        showToast('User added successfully.');
+        showToast('User added successfully. Credentials sent to email.');
       }
       setShowModal(false);
     } catch (err) {
       showToast(err.message, 'error');
     }
+  };
+
+  const addMembership = () => {
+    setForm(f => ({
+      ...f,
+      memberships: [...f.memberships, { division: '', role: 'student' }]
+    }));
+  };
+
+  const updateMembership = (index, field, value) => {
+    const newMemberships = [...form.memberships];
+    newMemberships[index][field] = value;
+    setForm(f => ({ ...f, memberships: newMemberships }));
+  };
+
+  const removeMembership = (index) => {
+    const newMemberships = form.memberships.filter((_, i) => i !== index);
+    setForm(f => ({ ...f, memberships: newMemberships }));
   };
 
   return (
@@ -213,13 +262,13 @@ export default function UsersPage() {
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                        {user.roles.map(r => <Badge key={r} text={r.replace('_', ' ')} colorMap={{}} />)}
+                        {user.roles?.map(r => <Badge key={r} text={r.replace('_', ' ')} colorMap={{}} />)}
                       </div>
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                        {user.divisions.map(d => (
-                          <Badge key={d._id || d} text={d.name || 'Unknown'} colorMap={DIV_COLOR} />
+                        {user.memberships?.map((m, idx) => (
+                          <Badge key={idx} text={m.division?.name || 'Unknown'} colorMap={DIV_COLOR} />
                         ))}
                       </div>
                     </td>
@@ -254,34 +303,94 @@ export default function UsersPage() {
                 <label>Email Address <span style={{ color: 'var(--danger)' }}>*</span></label>
                 <input className="form-input" type="email" placeholder="email@university.edu" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
               </div>
-              {!editTarget && (
-                <div className="form-group" style={{ gridColumn: '1 / span 2' }}>
-                  <label>Password <span style={{ color: 'var(--danger)' }}>*</span></label>
-                  <input className="form-input" type="password" placeholder="••••••••" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
+
+              {/* Primary Role */}
+              <div className="form-group">
+                <label>Primary Role</label>
+                <select
+                  className="form-input"
+                  value={form.primaryRole || 'student'}
+                  onChange={e => setForm(f => ({ ...f, roles: [e.target.value] }))}
+                >
+                  <option value="super_admin">Super Admin</option>
+                  <option value="division_admin">Division Admin</option>
+                  <option value="student">Student</option>
+                </select>
+                <small style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4, display: 'block' }}>
+                  This will be added to user's global roles
+                </small>
+              </div>
+
+              {/* Memberships Section */}
+              <div className="form-group" style={{ gridColumn: '1 / span 2' }}>
+                <label>Memberships</label>
+                <div style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12 }}>
+                  {form.memberships.map((membership, index) => (
+                    <div key={index} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                      <select
+                        className="form-input"
+                        value={membership.division}
+                        onChange={e => updateMembership(index, 'division', e.target.value)}
+                        style={{ flex: 2 }}
+                      >
+                        <option value="">Select Division</option>
+                        {divisions.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
+                      </select>
+                      <select
+                        className="form-input"
+                        value={membership.role}
+                        onChange={e => updateMembership(index, 'role', e.target.value)}
+                        style={{ flex: 1 }}
+                      >
+                        <option value="student">Student</option>
+                        <option value="division_admin">Division Admin</option>
+                      </select>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-danger"
+                        onClick={() => removeMembership(index)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={addMembership}
+                  >
+                    + Add Membership
+                  </button>
                 </div>
-              )}
-              <div className="form-group">
-                <label>Primary Role <span style={{ color: 'var(--danger)' }}>*</span></label>
-                <select className="form-input" value={form.roles[0]} onChange={e => setForm(f => ({ ...f, roles: [e.target.value] }))}>
-                  {ROLES.map(r => <option key={r} value={r}>{r.replace('_', ' ')}</option>)}
-                </select>
               </div>
-              <div className="form-group">
-                <label>Division <span style={{ color: 'var(--danger)' }}>*</span></label>
-                <select className="form-input" value={form.divisions[0] || ''} onChange={e => setForm(f => ({ ...f, divisions: e.target.value ? [e.target.value] : [] }))} style={{ borderColor: (!form.roles.includes('super_admin') && form.divisions.length === 0) ? 'var(--danger)' : '' }}>
-                  <option value="">Select Division</option>
-                  {divisions.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
-                </select>
-                {!form.roles.includes('super_admin') && form.divisions.length === 0 && (
-                  <p style={{ color: 'var(--danger)', fontSize: '0.7rem', marginTop: 4 }}>Division is required for this role</p>
-                )}
-              </div>
+
               <div className="form-group" style={{ gridColumn: '1 / span 2' }}>
                 <label>Status</label>
                 <select className="form-input" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
                   {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
+
+              {/* Auto-generated password notice */}
+              {!editTarget && (
+                <div className="form-group" style={{ gridColumn: '1 / span 2' }}>
+                  <div
+                    style={{
+                      backgroundColor: 'var(--info-light)',
+                      padding: 8,
+                      borderRadius: 4,
+                      fontSize: 14,
+                      color: 'var(--info)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}
+                  >
+                    <Info />
+                    <span>Auto-generated password will be sent to registered email address.</span>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="modal-actions" style={{ marginTop: 20 }}>
               <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>

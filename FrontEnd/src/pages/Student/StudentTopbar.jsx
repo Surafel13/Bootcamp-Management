@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Bell, User, LogOut, Settings } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { Link } from 'react-router-dom';
+import { useNotifications } from '../../context/NotificationContext';
 
 const PAGE_META = {
   sessions: { title: 'Student Dashboard', sub: 'View and manage your bootcamp sessions' },
@@ -19,6 +21,7 @@ export default function StudentTopbar({ activePage, onNavigate }) {
   const { isDark, toggle } = useTheme();
   const { user, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
+  const notifyCount = useNotifications().count;
 
   const meta = PAGE_META[activePage] || PAGE_META.sessions;
 
@@ -51,7 +54,7 @@ export default function StudentTopbar({ activePage, onNavigate }) {
           {/* Bell */}
           <button className="icon-btn" title="Notifications">
             <Bell size={18} />
-            <span className="notif-badge" />
+            <span className="notif-badge" style={{ color: notifyCount > 0 ? 'var(--text-on-primary)' : 'var(--text-muted)' }}>{notifyCount > 0 && notifyCount}</span>
           </button>
         </div>
 
@@ -69,10 +72,14 @@ export default function StudentTopbar({ activePage, onNavigate }) {
 
           {showDropdown && (
             <div className="dropdown-menu">
-              <button className="dropdown-item" onClick={() => { setShowDropdown(false); onNavigate('profile'); }}>
+              <Link className="dropdown-item" to="/profile" style={{ textDecoration: 'none' }} onClick={() => setShowDropdown(false)}>
                 <User size={16} />
                 <span>My Profile</span>
-              </button>
+              </Link>
+              <Link className="dropdown-item" to="/settings" style={{ textDecoration: 'none' }} onClick={() => setShowDropdown(false)}>
+                <Settings size={16} />
+                <span>Account Settings</span>
+              </Link>
               <div className="dropdown-divider" />
               <button className="dropdown-item danger" onClick={logout}>
                 <LogOut size={16} />
