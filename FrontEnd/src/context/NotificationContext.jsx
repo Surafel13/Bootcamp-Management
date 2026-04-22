@@ -69,7 +69,7 @@ export function NotificationProvider({ children }) {
     };
   }, [fetchNotifications]);
 
-  const count = notifications.filter(n => !n.isRead).length;
+  const count = notifications.filter(n => !n.read).length;
 
   const markAsRead = async (id) => {
     try {
@@ -80,7 +80,7 @@ export function NotificationProvider({ children }) {
 
   const markAllAsRead = async () => {
     try {
-      await apiFetch('/notifications/read-all', { method: 'PATCH' });
+      const data = await apiFetch('/notifications/read-all', { method: 'PATCH' });
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (err) { console.error(err); }
   };
