@@ -4,7 +4,7 @@ import User from "../models/user.model.js";
 import catchAsync from "../utils/catchAsync.js";
 import AppError from "../utils/appError.js";
 import Division from "../models/division.model.js";
-import { createUserSchema } from "../utils/validators/user.validator.js";
+import { createUserSchema } from "../validators/user.validator.js";
 import {
 	generateRandomPassword,
 	sendWelcomeEmail
