@@ -23,27 +23,27 @@ function InstructorDashboard() {
 
   const renderPage = () => {
     switch (activePage) {
-      case 'overview':      return <InstructorOverview />;
-      case 'sessions':      return <InstructorSessionsPage />;
-      case 'attendance':    return <InstructorAttendancePage />;
-      case 'resources':     return <InstructorResourcesPage />;
-      case 'tasks':         return <InstructorTasksPage />;
-      case 'submissions':   return <InstructorSubmissionsPage />;
-      case 'feedback':      return <FeedbackPage />;
-      case 'students':      return <InstructorUsersPage />;
-      case 'groups':        return <GroupsPage />;
-      case 'qrcode':        return <InstructorQRPage />;
+      case 'overview': return <InstructorOverview />;
+      case 'sessions': return <InstructorSessionsPage />;
+      case 'attendance': return <InstructorAttendancePage />;
+      case 'resources': return <InstructorResourcesPage />;
+      case 'tasks': return <InstructorTasksPage />;
+      case 'submissions': return <InstructorSubmissionsPage />;
+      case 'feedback': return <FeedbackPage />;
+      case 'students': return <InstructorUsersPage />;
+      case 'groups': return <GroupsPage />;
+      case 'qrcode': return <InstructorQRPage />;
       case 'notifications': return <NotificationsPage />;
-      case 'profile':       return <ProfilePage />;
-      default:              return <div className="card"><div className="empty-state"><h3>Coming Soon</h3></div></div>;
+      case 'profile': return <ProfilePage />;
+      default: return <div className="card"><div className="empty-state"><h3>Coming Soon</h3></div></div>;
     }
   };
 
   return (
     <div className={`app-layout ${sidebarCollapsed ? 'collapsed' : ''}`}>
-      <InstructorSidebar 
-        active={activePage} 
-        onNavigate={setActivePage} 
+      <InstructorSidebar
+        active={activePage}
+        onNavigate={setActivePage}
         isCollapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
       />

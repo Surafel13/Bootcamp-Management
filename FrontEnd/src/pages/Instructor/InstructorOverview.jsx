@@ -18,6 +18,7 @@ export default function InstructorOverview() {
       setLoading(true);
       // We assume the first division is the primary one for the instructor
       const divId = user.divisions[0]?._id || user.divisions[0];
+      const membership = user.membership.length > 0 ? user.membership[0].division : user.membership[0].division
       if (!divId) return;
 
       const [divStats, subData] = await Promise.all([
@@ -59,8 +60,8 @@ export default function InstructorOverview() {
         <div className="card" style={{ padding: 24 }}>
           <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 16 }}>Welcome back, {user.name}!</h3>
           <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: '1rem' }}>
-            You are currently managing the <strong>{user.divisions[0]?.name || 'Assigned'} Division</strong>. 
-            There are currently <strong style={{ color: 'var(--primary)', fontSize: '1.1rem' }}>{stats.pendingGrades}</strong> assignments waiting to be reviewed and graded. 
+            {/* You are currently managing the <strong>{user.divisions[0]?.name || 'Assigned'} Division</strong>.  */}
+            There are currently <strong style={{ color: 'var(--primary)', fontSize: '1.1rem' }}>{stats.pendingGrades}</strong> assignments waiting to be reviewed and graded.
             Your division's overall attendance is holding steady at <strong>{stats.avgAttendance}%</strong>.
           </p>
           <div style={{ marginTop: 24, display: 'flex', gap: 12 }}>

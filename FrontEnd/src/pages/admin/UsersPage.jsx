@@ -50,6 +50,7 @@ function Toast({ msg }) {
 }
 
 export default function UsersPage() {
+  console.log("division page")
   const [users, setUsers] = useState(INITIAL_USERS);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
