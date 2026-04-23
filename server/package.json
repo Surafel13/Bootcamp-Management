@@ -13,23 +13,27 @@
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.32.1",
-  "dependencies": {
+    "dependencies": {
+    "@scalar/express-api-reference": "^0.9.10",
     "@types/qrcode": "^1.5.6",
     "bcrypt": "^6.0.0",
-    "bullmq": "^5.75.2",
-    "cloudinary": "^2.9.0",
+    "bullmq": "^5.76.2",
+    "cloudinary": "^2.10.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.3.2",
+    "express-rate-limit": "^8.4.1",
+    "generate-password": "^1.7.1",
     "ipaddr.js": "^2.3.0",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.4.1",
+    "mongoose": "^9.5.0",
     "morgan": "^1.10.1",
     "multer": "^2.1.1",
+    "multer-storage-cloudinary": "^4.0.0",
     "node-cron": "^4.2.1",
-    "nodemailer": "^8.0.5",
+    "nodemailer": "^8.0.6",
     "qrcode": "^1.5.4",
+    "swagger-jsdoc": "^6.2.8",
     "winston": "^3.19.0",
     "zod": "^4.3.6"
   },
@@ -43,9 +47,11 @@
     "@types/node": "^25.6.0",
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^8.0.0",
+    "@types/swagger-jsdoc": "^6.0.4",
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.3"
   }
+
 }
