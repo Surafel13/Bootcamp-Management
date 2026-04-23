@@ -12,7 +12,7 @@ import env from "../config/env.js";
 import type { ISession } from "../types/types.js";
 import { Types } from "mongoose";
 import * as QRCode from "qrcode";
-import { validateSession } from "../utils/validators/sessions.validators.js";
+import { validateSession } from "../validators/sessions.validators.js";
 
 
 interface TokenPayload extends jwt.JwtPayload {
