@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import User from "../models/user.model.js";
 import Bootcamp from "../models/bootcamp.model.js";
 import Notification from "../models/notification.model.js";
-import { validateBootcamp } from "../utils/validators/bootcamp.validator.js";
+import { validateBootcamp } from "../validators/bootcamp.validator.js";
 import logger from "../utils/logger.js";
 
 export const createBootcamp = async (req: Request, res: Response) => {
