@@ -4,6 +4,11 @@ import type { IGroup } from "../types/types.js";
 const groupSchema = new mongoose.Schema<IGroup>({
 	name: { type: String, required: true },
 	description: String,
+	bootcamp: {
+		type: mongoose.Schema.Types.ObjectId,
+		ref: "Bootcamp",
+		required: true,
+	},
 	division: {
 		type: mongoose.Schema.Types.ObjectId,
 		ref: "Division",
