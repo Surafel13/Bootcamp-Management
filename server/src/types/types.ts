@@ -123,7 +123,11 @@ export interface ISubmission extends Document {
 	status: "submitted" | "graded" | "returned";
 	score: number;
 	feedback: string;
+	isLate: boolean;
+	gradedAt: Date;
+	gradedBy: Types.ObjectId | IUser;
 	submittedAt: Date;
+	updatedAt: Date;
 }
 
 export interface IResource extends Document {
@@ -142,7 +146,7 @@ export interface IResource extends Document {
 
 export interface IAttendance extends Document {
 	student: Types.ObjectId;
-	session: Types.ObjectId | ISession;
+	session: Types.ObjectId | ISession | string;
 	status: "present" | "absent" | "late" | "excused";
 	markedBy: Types.ObjectId | IUser;
 	qrToken?: string;
@@ -157,12 +161,13 @@ export interface IFeedback extends Document {
 	rating: number;
 	comment?: string;
 	createdAt: Date;
+	updatedAt: Date;
 }
 
 export interface IGroup extends Document {
 	name: string;
 	description?: string;
-	bootcamp: Types.ObjectId;
+	bootcamp: Types.ObjectId | IBootcamp | string;
 	division: Types.ObjectId;
 	leader?: string;
 	members: Types.ObjectId[];
@@ -186,12 +191,12 @@ export interface IProgress extends Document {
 	weekNumber: number;
 	year: number;
 	createdAt: Date;
-	updateAt: Date;
+	updatedAt: Date;
 }
 
 export interface IInstructorAssignment extends Document {
-	instructor: Types.ObjectId | IUser;
-	bootcamp: Types.ObjectId | IBootcamp;
+	instructor: Types.ObjectId | IUser | string;
+	bootcamp: Types.ObjectId | IBootcamp | string;
 	permissions: ("manage_attendance" | "upload_resources" | "create_tasks" | "grade_submissions" | "view_feedback")[];
 	startDate: Date;
 	endDate: Date;
