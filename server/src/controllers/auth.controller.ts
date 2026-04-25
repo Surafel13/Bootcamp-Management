@@ -1,205 +1,306 @@
 import type { Request, Response, NextFunction } from "express";
 import User from "../models/user.model.js";
 import Notification from "../models/notification.model.js";
-import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import catchAsync from "../utils/catchAsync.js";
 import AppError from "../utils/appError.js";
 import env from "../config/env.js";
-import { sendEmail } from "../services/email.service.js";
+import { signToken } from "../utils/jwt.js";
+import { sendPasswordResetEmail } from "../queues/email.queue.js";
 
-interface TokenPayload extends jwt.JwtPayload {
-	_id: string;
+export const login =
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { email, password, role, divisionId } = req.body;
+
+    if (!email || !password)
+      return next(
+        new AppError("Please provide email and password", 400, {
+          email: "Email is required",
+          password: "Password is required",
+        }),
+      );
+
+    const user = await User.findOne({ email }).select("+password");
+
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return next(
+        new AppError("Incorrect email or password", 401, {
+          credentials: "Invalid email or password",
+        }),
+      );
+    }
+
+    if (user.status === "suspended") {
+      return next(
+        new AppError("Your account has been suspended", 403, {
+          status: "Account suspended",
+        }),
+      );
+    }
+
+    let activeRole: string;
+    let activeDivision: string | null = null;
+
+    if (role && divisionId) {
+      const membership = user.memberships.find(
+        (m: any) =>
+          m.division.toString() === divisionId.toString() &&
+          m.role === role,
+      );
+
+      if (!membership) {
+        return next(
+          new AppError("You do not have this role in the specified division", 403, {
+            role: "Invalid role or division",
+          }),
+        );
+      }
+
+      if (role === "super_admin") {
+        return next(
+          new AppError("Super admin does not belong to a division", 400, {
+            role: "Invalid role for division-scoped login",
+          }),
+        );
+      }
+
+      activeRole = role;
+      activeDivision = divisionId;
+    } else {
+      const rolePriority = ["super_admin", "division_admin", "student"] as const;
+      activeRole = rolePriority.find((r) => user.roles.includes(r)) ?? "student";
+
+      if (activeRole !== "super_admin") {
+        const primaryMembership = user.memberships.find(
+          (m: any) => m.role === activeRole,
+        );
+        activeDivision = primaryMembership
+          ? primaryMembership.division.toString()
+          : null;
+      }
+    }
+
+    const payload = {
+      id: user._id.toString(),
+      role: activeRole,
+      ...(activeDivision && { divisionId: activeDivision }),
+    };
+
+    const accessToken = signToken(payload, env.JWT_SECRET, "24h");
+    const refreshToken = signToken(payload, env.JWT_REFRESH_SECRET, "7d");
+
+    if (!user.firstLogin) {
+      await User.updateOne({ _id: user._id }, { firstLogin: true });
+      const changePasswordURL = `${env.FRONTEND_URL}/change-password`;
+      await Notification.create({
+        user: user._id,
+        message: `Welcome to CSEC! You're now a member of the CSEC community. Please change your default password: ${changePasswordURL}`,
+        type: "general",
+      });
+    }
+
+    res.status(200).json({
+      status: "success",
+      accessToken,
+      refreshToken,
+      data: {
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          roles: user.roles,
+          memberships: user.memberships,
+          status: user.status,
+          activeRole,
+          activeDivision,
+        },
+      },
+    });
+  }
+
+export const forgotPassword =
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { email } = req.body;
+    if (!email)
+      return next(new AppError("Please provide your email address", 400, { email: "Required" }));
+
+    const user = await User.findOne({ email });
+    if (!user)
+      return next(new AppError("No user found with that email address", 404, { email: "Not found" }));
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(resetToken.toString()).digest("hex");
+
+    user.passwordResetToken = hashedToken;
+    user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
+    await user.save({ validateBeforeSave: false });
+
+
+    try {
+      await sendPasswordResetEmail(user.name, user.email, resetToken);
+
+      res.status(200).json({
+        status: "success",
+        message: "Password reset link sent to email",
+      });
+    } catch {
+      user.passwordResetToken = undefined;
+      user.passwordResetExpires = undefined;
+      await user.save({ validateBeforeSave: false });
+      return next(new AppError("Failed to send email. Please try again later.", 500, {}));
+    }
+  }
+
+export const validateResetPasswordToken = async (req: Request, res: Response, next: NextFunction) => {
+  const { token } = req.params;
+
+  if (!token) {
+    throw new AppError("Token is required", 400);
+  }
+
+  const hashedToken = crypto.createHash("sha256").update(token.toString()).digest("hex");
+
+  const user = await User.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetExpires: { $gt: new Date() },
+  }).select("+password");
+
+  if (!user)
+    return next(new AppError("Token is invalid or has expired", 400, { token: "Invalid or expired" }));
+
+  res.status(200).json({
+    status: "success",
+    data: { user },
+  });
 }
 
-const signToken = (
-	id: string,
-	secret: string,
-	expires: NonNullable<jwt.SignOptions["expiresIn"]>,
-) => {
-	return jwt.sign({ id }, secret, { expiresIn: expires });
-};
+export const resetPassword =
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { token } = req.params;
+    const { password } = req.body;
 
-export const login = catchAsync(
-	async (req: Request, res: Response, next: NextFunction) => {
-		const { email, password } = req.body;
+    if (!password)
+      return next(new AppError("Please provide a new password", 400, { password: "Required" }));
 
-		if (!email || !password)
-			return next(
-				new AppError("Please provide email and password", 400, {
-					email: "Email is required",
-					password: "Password is required",
-				}),
-			);
+    if (!token) {
+      throw new AppError("Token is required", 400);
+    }
+    const hashedToken = crypto.createHash("sha256").update(token.toString()).digest("hex");
 
-		const user = await User.findOne({ email }).select("+password");
-		if (!user || !(await bcrypt.compare(password, user.password))) {
-			return next(
-				new AppError("Incorrect email or password", 401, {
-					credentials: "Invalid email or password",
-				}),
-			);
-		}
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: new Date() },
+    }).select("+password");
 
-		if (user.status === "suspended") {
-			return next(
-				new AppError("Your account has been suspended", 403, {
-					status: "Account suspended",
-				}),
-			);
-		}
+    if (!user)
+      return next(new AppError("Token is invalid or has expired", 400, { token: "Invalid or expired" }));
 
-		const accessToken = signToken(user._id.toString(), env.JWT_SECRET, "24h");
-		const refreshToken = signToken(
-			user._id.toString(),
-			env.JWT_REFRESH_SECRET,
-			"7d",
-		);
+    user.password = password;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
 
-		if (!user.firstLogin) {
-			await User.updateOne({ _id: user._id }, { firstLogin: true });
+    const payload = {
+      id: user._id.toString(),
+      role: req.activeRole!,
+      ...(req.activeDivisionId && { divisionId: req.activeDivisionId }),
+    };
 
-			await Notification.create({
-				user: user._id,
-				message: `Welcome to CSEC!, you're now a member of the CSEC community. Please change your default password.!`,
-				type: "general",
-			});
-		}
+    const accessToken = signToken(payload, env.JWT_SECRET, "24h");
+    const refreshToken = signToken(payload, env.JWT_REFRESH_SECRET, "7d");
 
-		res.status(200).json({
-			status: "success",
-			accessToken,
-			refreshToken,
-			data: {
-				user: {
-					_id: user._id,
-					name: user.name,
-					email: user.email,
-					roles: user.roles,
-					divisions: user.divisions,
-					status: user.status,
-				},
-			},
-		});
-	},
-);
+    res.status(200).json({
+      status: "success",
+      message: "Password reset successful",
+      accessToken,
+      refreshToken,
+    });
+  }
 
+export const changePassword =
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { token } = req.query;
+    const { password } = req.body;
+    if (!password)
+      return next(new AppError("Please provide a new password", 400, { password: "Required" }));
 
-export const refresh = catchAsync(
-	async (req: Request, res: Response, next: NextFunction) => {
-		const { refreshToken } = req.body;
-		if (!refreshToken)
-			return next(
-				new AppError("Refresh token required", 400, {
-					refreshToken: "Missing refresh token",
-				}),
-			);
+    if (!token) {
+      throw new AppError("Token is required", 400);
+    }
 
-		const decoded = jwt.verify(
-			refreshToken,
-			env.JWT_REFRESH_SECRET,
-		) as TokenPayload;
-		const user = await User.findById(decoded.id);
+    const hashedToken = crypto.createHash("sha256").update(token.toString()).digest("hex");
 
-		if (!user)
-			return next(
-				new AppError("User no longer exists", 401, {
-					user: "User not found or deleted",
-				}),
-			);
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: new Date() },
+    }).select("+password");
 
-		const newAccessToken = signToken(
-			user._id.toString(),
-			env.JWT_SECRET,
-			"24h",
-		);
+    if (!user)
+      return next(new AppError("Token is invalid or has expired", 400, { token: "Invalid or expired" }));
 
-		res.status(200).json({ status: "success", accessToken: newAccessToken });
-	},
-);
+    user.password = password;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
 
-export const forgotPassword = catchAsync(
-	async (req: Request, res: Response, next: NextFunction) => {
-		const { email } = req.body;
-		if (!email)
-			return next(new AppError("Please provide your email address", 400, { email: "Required" }));
+    const payload = {
+      id: user._id.toString(),
+      role: req.activeRole!,
+      ...(req.activeDivisionId && { divisionId: req.activeDivisionId }),
+    };
 
-		const user = await User.findOne({ email });
-		if (!user)
-			return next(new AppError("No user found with that email address", 404, { email: "Not found" }));
+    const accessToken = signToken(payload, env.JWT_SECRET, "24h");
+    const refreshToken = signToken(payload, env.JWT_REFRESH_SECRET, "7d");
 
-		// Generate raw token and store its hash
-		const resetToken = crypto.randomBytes(32).toString("hex");
-		const hashedToken = crypto.createHash("sha256").update(resetToken.toString()).digest("hex");
+    res.status(200).json({
+      status: "success",
+      message: "Password reset successful",
+      accessToken,
+      refreshToken,
+    });
+  }
 
-		user.passwordResetToken = hashedToken;
-		user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-		await user.save({ validateBeforeSave: false });
+export const switchRole =
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { role, divisionId } = req.body;
+    const user = req.user!;   
 
-		const resetURL = `http://localhost:5173/reset-password/${resetToken}`;
+    if (!user.memberships.find(m => m.role === role)) {
+    // if (!user.roles.includes(role)) {
+      return next(new AppError("You do not have this role", 403, { role: "Invalid role" }));
+    }
 
-		try {
-			await sendEmail(
-				user.email,
-				"BMS – Password Reset Request",
-				`You did not requested a password reset. Click the link below to reset your password (valid for 1 hour):\n\n${resetURL}\n\nIf you did not request this, please ignore this email.`,
-			);
-			res.status(200).json({
-				status: "success",
-				message: "Password reset link sent to email",
-			});
-		} catch {
-			user.passwordResetToken = undefined;
-			user.passwordResetExpires = undefined;
-			await user.save({ validateBeforeSave: false });
-			return next(new AppError("Failed to send email. Please try again later.", 500, {}));
-		}
-	},
-);
+    if (role !== "super_admin") {
+      const membership = user.memberships.find(
+        (m: any) =>
+          m.role === role &&
+          (!divisionId || m.division.toString() === divisionId),
+      );
+      if (!membership) {
+        return next(new AppError("Invalid role/division combination", 403, { role: "No matching membership" }));
+      }
+    }
 
-export const resetPassword = catchAsync(
-	async (req: Request, res: Response, next: NextFunction) => {
-		const { token } = req.params;
-		const { password } = req.body;
+    const activeDivision =
+      role === "super_admin"
+        ? null
+        : (divisionId ?? user.memberships.find((m: any) => m.role === role)?.division.toString());
 
-		if (!password)
-			return next(new AppError("Please provide a new password", 400, { password: "Required" }));
+    const payload = {
+      id: user._id.toString(),
+      role,
+      ...(activeDivision && { divisionId: activeDivision }),
+    };
 
-		// Ensure `token` is checked before usage
-		if (!token) {
-			throw new AppError("Token is required", 400);
-		}
-		const hashedToken = crypto.createHash("sha256").update(token.toString()).digest("hex");
+    res.status(200).json({
+      status: "success",
+      accessToken: signToken(payload, env.JWT_SECRET, "24h"),
+      refreshToken: signToken(payload, env.JWT_REFRESH_SECRET, "7d"),
+      data: { activeRole: role, activeDivision },
+    });
+  }
 
-		const user = await User.findOne({
-			passwordResetToken: hashedToken,
-			passwordResetExpires: { $gt: new Date() },
-		}).select("+password");
-
-		if (!user)
-			return next(new AppError("Token is invalid or has expired", 400, { token: "Invalid or expired" }));
-
-		user.password = password;
-		user.passwordResetToken = undefined;
-		user.passwordResetExpires = undefined;
-		await user.save();
-
-		const accessToken = signToken(user._id.toString(), env.JWT_SECRET, "24h");
-		const refreshToken = signToken(user._id.toString(), env.JWT_REFRESH_SECRET, "7d");
-
-		res.status(200).json({
-			status: "success",
-			message: "Password reset successful",
-			accessToken,
-			refreshToken,
-		});
-	},
-);
-
-export const logout = catchAsync(
-	async (req: Request, res: Response, _next: NextFunction) => {
-		// Client should discard tokens. This endpoint is for audit purposes and future blocklist support.
-		res.status(200).json({ status: "success", message: "Logged out successfully" });
-	},
-);
+export const logout =
+  async (_req: Request, res: Response, _next: NextFunction) => {
+    res.status(200).json({ status: "success", message: "Logged out successfully" });
+  }
