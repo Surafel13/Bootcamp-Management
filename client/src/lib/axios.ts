@@ -1,37 +1,34 @@
-const API_URL = 'http://localhost:3000/api';
-export const UPLOADS_URL = 'http://localhost:3000/uploads';
+import axios from 'axios';
+import { store } from '../app/store';
+import { clearCredentials } from '../features/auth/authSlice';
 
-export const apiFetch = async (endpoint, options = {}) => {
-  const token = localStorage.getItem('token');
-  
-  const headers = {
-    ...(token && { 'Authorization': `Bearer ${token}` }),
-    ...options.headers,
-  };
+const api = axios.create({
+  baseURL: `${import.meta.env.VITE_API_BASE_URL}/api`,
+  headers: { 'Content-Type': 'application/json' },
+});
 
-  if (!(options.body instanceof FormData)) {
-    headers['Content-Type'] = 'application/json';
+api.interceptors.request.use(config => {
+  const token = store.getState().auth.token;
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+const AUTH_ROUTES = ['/auth/login', '/auth/forgot-password', '/auth/reset-password', '/auth/switch-role'];
+
+api.interceptors.response.use(
+  res => res,
+  err => {
+    const requestUrl = err.config?.url ?? '';
+    const isAuthRoute = AUTH_ROUTES.some(route => requestUrl.includes(route));
+    const isUnauthorized = err.response?.status === 401;
+
+    if (isUnauthorized && !isAuthRoute) {
+      store.dispatch(clearCredentials());
+      window.location.replace('/login');
+    }
+
+    return Promise.reject(err);
   }
+);
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
-
-  const text = await response.text();
-  let data;
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch (err) {
-    console.error('API Parse Error. Received:', text);
-    throw new Error('Server returned invalid response (HTML). Check console for details.');
-  }
-
-  if (!response.ok) {
-    throw new Error(data.message || 'Something went wrong');
-  }
-
-  return data;
-};
-
-export default apiFetch;
+export default api;
