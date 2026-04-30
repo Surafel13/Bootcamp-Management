@@ -47,11 +47,21 @@ userSchema.methods.getRoleInDivision = function (divisionId: string) {
   return membership ? membership.role : null;
 };
 
+const resolveDivisionId = (division: any): string =>
+  (division?._id ?? division)?.toString();
+
 userSchema.methods.isInDivision = function (divisionId: string) {
   return this.memberships.some(
-    (m: any) => m.division.toString() === divisionId.toString()
+    (m: any) => resolveDivisionId(m.division) === divisionId.toString()
   );
 };
+
+userSchema.methods.getRoleInDivision = function (divisionId: string) {
+  const membership = this.memberships.find(
+    (m: any) => resolveDivisionId(m.division) === divisionId.toString()
+  );
+  return membership ? membership.role : null;
+}
 
 const User = mongoose.model<IUser>("User", userSchema);
 

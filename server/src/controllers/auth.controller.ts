@@ -43,10 +43,13 @@ export const login =
     let activeRole: string;
     let activeDivision: string | null = null;
 
+    const getDivisionId = (division: any): string =>
+      (division?._id ?? division)?.toString();
+
     if (role && divisionId) {
       const membership = user.memberships.find(
         (m: any) =>
-          m.division.toString() === divisionId.toString() &&
+          getDivisionId(m.division) === divisionId.toString() && // ✅ was m.division.toString()
           m.role === role,
       );
 
@@ -76,8 +79,9 @@ export const login =
         const primaryMembership = user.memberships.find(
           (m: any) => m.role === activeRole,
         );
+        // Default role path
         activeDivision = primaryMembership
-          ? primaryMembership.division.toString()
+          ? getDivisionId(primaryMembership.division)
           : null;
       }
     }
@@ -265,30 +269,37 @@ export const changePassword =
 export const switchRole =
   async (req: Request, res: Response, next: NextFunction) => {
     const { role, divisionId } = req.body;
-    console.log("Switching role to:", role, "with divisionId:", divisionId);
-    const user = req.user!;   
+    const user = req.user!;
 
-    if (!user.memberships.find(m => m.role === role)) {
-    // if (!user.roles.includes(role)) {
+    // Helper to extract division ID from either populated object or raw ObjectId
+    const getDivisionId = (division: any): string =>
+      (division?._id ?? division)?.toString();
+
+    // Check if user has this role (either in roles array or memberships)
+    if (!user.roles.includes(role) && !user.memberships.find(m => m.role === role)) {
       return next(new AppError("You do not have this role", 403, { role: "Invalid role" }));
     }
 
-    if (role !== "super_admin") {
-      const membership = user.memberships.find(
-        (m: any) =>
-          m.role === role &&
-          (!divisionId || m.division.toString() === divisionId),
-      );
-      console.log(membership)
+    let activeDivision: string | null = null;
+
+    if (role === "super_admin") {
+      // Super admin has no division context
+      activeDivision = null;
+    } else {
+      // For division-scoped roles, find the matching membership
+      const membership = user.memberships.find((m: any) => {
+        if (m.role !== role) return false;
+        if (!divisionId) return true; // Match first membership for this role
+        return getDivisionId(m.division) === divisionId.toString();
+      });
+
       if (!membership) {
         return next(new AppError("Invalid role/division combination", 403, { role: "No matching membership" }));
       }
-    }
 
-    const activeDivision =
-      role === "super_admin"
-        ? null
-        : (divisionId ?? user.memberships.find((m: any) => m.role === role)?.division.toString());
+      // Extract division ID as string (handles both populated and non-populated)
+      activeDivision = getDivisionId(membership.division);
+    }
 
     const payload = {
       id: user._id.toString(),

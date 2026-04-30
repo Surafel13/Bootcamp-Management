@@ -90,7 +90,6 @@ const handleSwitch = async (opt: MembershipOption) => {
 
   } catch (err) {
     console.error('Role switch failed:', err);
-    console.error('Role switch failed:', err.message);
     dispatch(addToast({ message: 'Role switch failed', type: 'error' }));
   } finally {
     setSwitching(false);
