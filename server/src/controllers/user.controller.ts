@@ -1,264 +1,310 @@
 import type { Request, Response, NextFunction } from "express";
 import bcrypt from "bcrypt";
 import User from "../models/user.model.js";
-import catchAsync from "../utils/catchAsync.js";
-import AppError from "../utils/appError.js";
 import Division from "../models/division.model.js";
 import { createUserSchema } from "../validators/user.validator.js";
-import {
-	generateRandomPassword,
-	sendWelcomeEmail
-} from "../queues/emailQueue.js";
+import { sendWelcomeEmail } from "../queues/email.queue.js";
 import logger from "../utils/logger.js";
+import { generate } from "generate-password";
+import AppError from "../utils/appError.js";
 
-// Admin creates a user (no self-registration per SRS §4.1)
-export const createUser = catchAsync(async (req: Request, res: Response) => {
-	const validationResult = createUserSchema.safeParse(req.body);
+export const createUser = async (req: Request, res: Response) => {
+  const validationResult = createUserSchema.safeParse(req.body);
 
-	if (!validationResult.success) {
-		return res.status(400).json({
-			status: "error",
-			message: "Validation failed",
-			errors: validationResult.error.issues.map(err => ({
-				field: err.path.join("."),
-				message: err.message
-			}))
-		});
-	}
+  if (!validationResult.success) {
+    return res.status(400).json({
+      status: "error",
+      message: "Validation failed",
+      errors: validationResult.error.issues.map(err => ({
+        field: err.path.join("."),
+        message: err.message
+      }))
+    });
+  }
 
-	const { name, email, roles, memberships, status } = validationResult.data;
+  const { name, email, roles, memberships, status } = validationResult.data;
 
-	const existingUser = await User.findOne({ email });
+  const existingUser = await User.findOne({ email });
 
-	if (existingUser) {
-		return res.status(400).json({
-			status: "error",
-			message: "User with this email already exists"
-		});
-	}
+  if (existingUser) {
+    return res.status(400).json({
+      status: "error",
+      message: "User with this email already exists"
+    });
+  }
 
-	if (memberships.length > 0) {
-		const divisionIds = memberships.map(m => m.division);
-		const divisions = await Division.find({ _id: { $in: divisionIds } });
+  if (memberships.length > 0) {
+    const divisionIds = memberships.map(m => m.division);
+    const divisions = await Division.find({ _id: { $in: divisionIds } });
 
-		if (divisions.length !== divisionIds.length) {
-			const foundDivisionIds = divisions.map(d => d._id.toString());
-			const missingDivisions = divisionIds.filter(id => !foundDivisionIds.includes(id));
+    if (divisions.length !== divisionIds.length) {
+      const foundDivisionIds = divisions.map(d => d._id.toString());
+      const missingDivisions = divisionIds.filter(id => !foundDivisionIds.includes(id));
 
-			return res.status(400).json({
-				status: "error",
-				message: `Divisions not found: ${missingDivisions.join(", ")}`
-			});
-		}
-	}
+      return res.status(400).json({
+        status: "error",
+        message: `Divisions not found: ${missingDivisions.join(", ")}`
+      });
+    }
+  }
 
-	const plainTextPassword = generateRandomPassword(12);
-	console.log("plainTextPassword", plainTextPassword);
+  const plainTextPassword = generate({
+    length: 12,
+  });
 
-	const hashedPassword = await bcrypt.hash(plainTextPassword, 12);
+  console.log("plainTextPassword", plainTextPassword);
 
-	const user = await User.create({
-		name,
-		email,
-		password: hashedPassword,
-		roles,
-		memberships,
-		status,
-		isPasswordChanged: false
-	});
+  const hashedPassword = await bcrypt.hash(plainTextPassword, 12);
 
-	try {
-		await sendWelcomeEmail(email, name, plainTextPassword);
-		logger.info(`Welcome email queued for ${email}`);
-	} catch (emailError) {
-		logger.error(`Failed to queue email for ${email}: ${emailError}`);
-	}
+  const user = await User.create({
+    name,
+    email,
+    password: hashedPassword,
+    roles,
+    memberships,
+    status,
+    isPasswordChanged: false
+  });
 
-	let userResponse = user.toObject() as any;
+  try {
+    await sendWelcomeEmail(email, name, plainTextPassword);
+    logger.info(`Welcome email queued for ${email}`);
+  } catch (emailError) {
+    logger.error(`Failed to queue email for ${email}: ${emailError}`);
+  }
 
-	delete userResponse.password;
-	delete userResponse.isPasswordChanged;
+  let userResponse = user.toObject() as any;
 
-	if (memberships.length > 0) {
-		const populatedUser = await User.findById(user._id)
-			.populate("memberships.division", "name code description");
-		userResponse = populatedUser?.toObject() as any;
-		delete userResponse.password;
-		delete userResponse.isPasswordChanged;
-	}
+  delete userResponse.password;
+  delete userResponse.isPasswordChanged;
 
-	res.status(201).json({
-		status: "success",
-		data: {
-			user: userResponse,
-			message: "User created successfully. Credentials have been sent to their email."
-		}
-	});
-});
+  if (memberships.length > 0) {
+    const populatedUser = await User.findById(user._id)
+      .populate("memberships.division", "name code description");
+    userResponse = populatedUser?.toObject() as any;
+    delete userResponse.password;
+    delete userResponse.isPasswordChanged;
+  }
 
-// Admin lists all users with optional filters
-export const getAllUsers = catchAsync(async (req: Request, res: Response) => {
-	const { role, status, division } = req.query;
+  res.status(201).json({
+    status: "success",
+    data: {
+      user: userResponse,
+      message: "User created successfully. Credentials have been sent to their email."
+    }
+  });
+}
 
-	const filter: Record<string, any> = {};
-	if (role) filter.roles = role;
-	if (status) filter.status = status;
-	if (division) {
-		filter["memberships.division"] = division;
-	}
+export const getMe = async (req: Request, res: Response) => {
+  const user = await User.findById(req.user!._id)
+    .select("memberships")
+    .populate({
+      path: "memberships.division",
+      select: "name description",
+    });
+  res.status(200).json({ status: "success", data: { user } });
+}
 
-	const users = await User.find(filter)
-		.populate("memberships.division", "name code description")
-		.select("-password -passwordResetToken -passwordResetExpires");
+export const getAllUsers = async (req: Request, res: Response) => {
+  const { role, status, division, search, limit = 100, page = 1 } = req.query;
 
-	res.status(200).json({
-		status: "success",
-		results: users.length,
-		data: { users },
-	});
-});
+  const filter: Record<string, any> = {};
+  
+  // Add search functionality to getAllUsers as well
+  if (search && typeof search === 'string' && search.trim().length > 0) {
+    filter.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } }
+    ];
+  }
+  
+  if (role) filter.roles = role;
+  if (status) filter.status = status;
+  if (division) {
+    filter["memberships.division"] = division;
+  }
 
-// Get currently logged-in user
-export const getMe = catchAsync(async (req: Request, res: Response) => {
-	const user = await User.findById(req.user!._id)
-		.select("memberships")
-		.populate({
-			path: "memberships.division",
-			select: "name description",
-		});
-	res.status(200).json({ status: "success", data: { user } });
-});
+  const skip = (Number(page) - 1) * Number(limit);
+  const limitNum = Number(limit);
 
-// Update currently logged-in user
-export const updateMe = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-	const user = await User.findById(req.user!._id);
-	if (!user) return next(new AppError("User not found", 404, {}));
+  const [users, total] = await Promise.all([
+    User.find(filter)
+      .populate("memberships.division", "name code description")
+      .select("-password -passwordResetToken -passwordResetExpires")
+      .skip(skip)
+      .limit(limitNum)
+      .sort({ createdAt: -1 }),
+    User.countDocuments(filter)
+  ]);
 
-	if (req.body.name) user.name = req.body.name;
-	if (req.body.password) user.password = req.body.password;
+  res.status(200).json({
+    status: "success",
+    results: users.length,
+    total,
+    pagination: {
+      page: Number(page),
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
+      hasNext: skip + users.length < total,
+      hasPrev: Number(page) > 1
+    },
+    data: { users },
+  });
+};
 
-	await user.save();
+export const getUserById = async (req: Request, res: Response, next: NextFunction) => {
+  const user = await User.findById(req.params.id)
+    .populate("memberships.division", "name code description")
+    .select("-password -passwordResetToken -passwordResetExpires -isPasswordChanged");
 
-	// Hide password
-	const userResponse = user.toObject() as any;
-	delete userResponse.password;
+  if (!user)
+    return next(new AppError("No user found with that ID", 404, { id: "Not found" }));
 
-	res.status(200).json({ status: "success", data: { user: userResponse } });
-});
+  res.status(200).json({ status: "success", data: { user } });
+}
 
-// Get user by ID
-export const getUserById = catchAsync(
-	async (req: Request, res: Response, next: NextFunction) => {
-		const user = await User.findById(req.params.id)
-			.populate("memberships.division", "name code description")
-			.select("-password -passwordResetToken -passwordResetExpires -isPasswordChanged");
+export const searchUsers = async (req: Request, res: Response) => {
+  const { q, role, status, division, limit = 10, page = 1 } = req.query;
 
-		if (!user)
-			return next(new AppError("No user found with that ID", 404, { id: "Not found" }));
+  const filter: Record<string, any> = {};
+  
+  // Text search across name and email if 'q' parameter is provided
+  if (q && typeof q === 'string' && q.trim().length > 0) {
+    filter.$or = [
+      { name: { $regex: q, $options: 'i' } },
+      { email: { $regex: q, $options: 'i' } }
+    ];
+  }
+  
+  // Apply filters if provided
+  if (role) filter.roles = role;
+  if (status) filter.status = status;
+  if (division) {
+    filter["memberships.division"] = division;
+  }
 
-		res.status(200).json({ status: "success", data: { user } });
-	},
-);
+  // Calculate pagination
+  const skip = (Number(page) - 1) * Number(limit);
+  const limitNum = Number(limit);
+
+  // Execute queries in parallel for better performance
+  const [users, total] = await Promise.all([
+    User.find(filter)
+      .populate("memberships.division", "name code description")
+      .select("-password -passwordResetToken -passwordResetExpires")
+      .skip(skip)
+      .limit(limitNum)
+      .sort({ createdAt: -1 }),
+    User.countDocuments(filter)
+  ]);
+
+  res.status(200).json({
+    status: "success",
+    results: users.length,
+    total,
+    pagination: {
+      page: Number(page),
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
+      hasNext: skip + users.length < total,
+      hasPrev: Number(page) > 1
+    },
+    data: { users },
+  });
+};
 
 // Update user info
-export const updateUser = catchAsync(async (req: Request, res: Response) => {
-	const { id } = req.params;
-	const { name, email, memberships, status } = req.body;
+export const updateUser = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { name, email, memberships, status } = req.body;
 
-	// Validate memberships if provided
-	if (memberships && memberships.length > 0) {
-		const divisionIds = memberships.map((m: { division: string }) => m.division);
-		const divisions = await Division.find({ _id: { $in: divisionIds } });
+  if (memberships && memberships.length > 0) {
+    const divisionIds = memberships.map((m: { division: string }) => m.division);
+    const divisions = await Division.find({ _id: { $in: divisionIds } });
 
-		if (divisions.length !== divisionIds.length) {
-			const foundDivisionIds = divisions.map((d: { _id: { toString: () => any; }; }) => d._id.toString());
-			const missingDivisions = divisionIds.filter((id: string) => !foundDivisionIds.includes(id));
+    if (divisions.length !== divisionIds.length) {
+      const foundDivisionIds = divisions.map((d: { _id: { toString: () => any; }; }) => d._id.toString());
+      const missingDivisions = divisionIds.filter((id: string) => !foundDivisionIds.includes(id));
 
-			return res.status(400).json({
-				status: "error",
-				message: `Divisions not found: ${missingDivisions.join(", ")}`
-			});
-		}
+      return res.status(400).json({
+        status: "error",
+        message: `Divisions not found: ${missingDivisions.join(", ")}`
+      });
+    }
 
-		req.body.roles = [...new Set(memberships.map((m: { role: any; }) => m.role))];
-	}
+    req.body.roles = [...new Set(memberships.map((m: { role: any; }) => m.role))];
+  }
 
-	const user = await User.findByIdAndUpdate(
-		id,
-		{ name, email, memberships, status, roles: req.body.roles },
-		{ new: true, runValidators: true }
-	)
-		.populate("memberships.division", "name code description")
-		.select("-password -passwordResetToken -passwordResetExpires -isPasswordChanged");
+  const user = await User.findByIdAndUpdate(
+    id,
+    { name, email, memberships, status, roles: req.body.roles },
+    { new: true, runValidators: true }
+  )
+    .populate("memberships.division", "name code description")
+    .select("-password -passwordResetToken -passwordResetExpires -isPasswordChanged");
 
-	if (!user) {
-		return res.status(404).json({
-			status: "error",
-			message: "User not found"
-		});
-	}
+  if (!user) {
+    return res.status(404).json({
+      status: "error",
+      message: "User not found"
+    });
+  }
 
-	res.status(200).json({
-		status: "success",
-		data: { user }
-	});
-});
+  res.status(200).json({
+    status: "success",
+    data: { user }
+  });
+}
 
-// Update user status (Active / Suspended / Graduated)
-export const updateUserStatus = catchAsync(
-	async (req: Request, res: Response, next: NextFunction) => {
-		const { status } = req.body;
-		const allowed = ["active", "suspended", "graduated"];
+export const updateUserStatus =
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { status } = req.body;
+    const allowed = ["active", "suspended", "graduated"];
 
-		if (!status || !allowed.includes(status)) {
-			return next(
-				new AppError("Invalid status. Must be active, suspended, or graduated", 400, {
-					status: "Invalid value",
-				}),
-			);
-		}
+    if (!status || !allowed.includes(status)) {
+      return next(
+        new AppError("Invalid status. Must be active, suspended, or graduated", 400, {
+          status: "Invalid value",
+        }),
+      );
+    }
 
-		const user = await User.findByIdAndUpdate(
-			req.params.id,
-			{ status },
-			{ new: true },
-		);
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true },
+    );
 
-		if (!user)
-			return next(new AppError("No user found with that ID", 404, { id: "Not found" }));
+    if (!user)
+      return next(new AppError("No user found with that ID", 404, { id: "Not found" }));
 
-		res.status(200).json({ status: "success", data: { user } });
-	},
-);
+    res.status(200).json({ status: "success", data: { user } });
+  }
 
-// Assign / update user divisions
-export const updateUserDivisions = catchAsync(
-	async (req: Request, res: Response, next: NextFunction) => {
-		const { divisions } = req.body;
-		if (!divisions || !Array.isArray(divisions)) {
-			return next(new AppError("Please provide a divisions array", 400, { divisions: "Required" }));
-		}
+export const updateUserDivisions =
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { divisions } = req.body;
+    if (!divisions || !Array.isArray(divisions)) {
+      return next(new AppError("Please provide a divisions array", 400, { divisions: "Required" }));
+    }
 
-		const user = await User.findByIdAndUpdate(
-			req.params.id,
-			{ divisions },
-			{ new: true, runValidators: true },
-		).populate("divisions", "name");
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { divisions },
+      { new: true, runValidators: true },
+    ).populate("divisions", "name");
 
-		if (!user)
-			return next(new AppError("No user found with that ID", 404, { id: "Not found" }));
+    if (!user)
+      return next(new AppError("No user found with that ID", 404, { id: "Not found" }));
 
-		res.status(200).json({ status: "success", data: { user } });
-	},
-);
+    res.status(200).json({ status: "success", data: { user } });
+  }
 
-// Delete user
-export const deleteUser = catchAsync(
-	async (req: Request, res: Response, next: NextFunction) => {
-		const user = await User.findByIdAndDelete(req.params.id);
-		if (!user)
-			return next(new AppError("No user found with that ID", 404, { id: "Not found" }));
+export const deleteUser =
+  async (req: Request, res: Response, next: NextFunction) => {
+    const user = await User.findByIdAndDelete(req.params.id);
+    if (!user)
+      return next(new AppError("No user found with that ID", 404, { id: "Not found" }));
 
-		res.status(204).json({ status: "success", data: null });
-	},
-);
+    res.status(204).json({ status: "success", data: null });
+  }
