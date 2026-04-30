@@ -6,7 +6,6 @@ const envSchema = z.object({
 		.enum(["development", "production", "test"])
 		.default("development"),
 	PORT: z.string().default("3000"),
-	// Accept the common MONGODB_URI name and also accept MONGO_URI if present
 	MONGODB_URI: z.string().optional(),
 	MONGO_URI: z.string().optional(),
 	JWT_SECRET: z.string(),
@@ -15,16 +14,15 @@ const envSchema = z.object({
 	JWT_QR_SECRET: z.string(),
 	EMAIL_HOST: z.string(),
 	EMAIL_PORT: z.string(),
-	EMAIL_USER: z.string().email(),
+	EMAIL_USER: z.email(),
 	EMAIL_PASS: z.string(),
-	FRONTEND_URL: z.string().url(),
+	FRONTEND_URL: z.url(),
 });
 
-export function validateEnv() {
+export default function validateEnv() {
 	try {
 		const parsed = envSchema.parse(process.env);
 
-		// Require at least one of the Mongo URI names
 		if (!parsed.MONGODB_URI && !parsed.MONGO_URI) {
 			logger.error("Invalid environment variables: missing MONGODB_URI / MONGO_URI");
 			process.exit(1);

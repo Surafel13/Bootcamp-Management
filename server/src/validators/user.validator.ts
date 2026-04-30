@@ -11,8 +11,7 @@ export const createUserSchema = z.object({
     .max(100, "Name must not exceed 100 characters")
     .trim(),
 
-  email: z.string()
-    .email("Invalid email format")
+  email: z.email("Invalid email format")
     .toLowerCase()
     .trim(),
 
