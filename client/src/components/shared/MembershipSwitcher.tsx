@@ -99,8 +99,8 @@ const handleSwitch = async (opt: MembershipOption) => {
   // Find current active option to display division name
   const activeOption = options.find(opt => isActive(opt));
   const displayLabel = activeOption?.role === 'super_admin'
-    ? ROLE_LABELS[activeRole]
-    : `${ROLE_LABELS[activeRole]} - ${activeOption?.sub ?? ''}`;
+    ? ROLE_LABELS[activeRole!]
+    : `${ROLE_LABELS[activeRole!]} - ${activeOption?.sub ?? ''}`;
 
   return (
     <div className="relative">

@@ -83,7 +83,7 @@ export default function BootcampsPage({ onOpenBootcamp }: Props) {
       setSearchTerm('');
     }
     
-    setEditTarget(b._id);
+    setEditTarget(b._id!);
     setShowModal(true);
   };
 
@@ -103,14 +103,14 @@ export default function BootcampsPage({ onOpenBootcamp }: Props) {
     
     const payload = { 
       ...form, 
-      division: divisionId, 
+      division: divisionId!, 
       creator: user?._id,
-      instructor: instructorId || undefined
+      instructor: instructorId || ""
     };
     
     try {
       if (editTarget) {
-        await updateBootcamp.mutateAsync({ id: editTarget, ...payload });
+        await updateBootcamp.mutateAsync({ id: editTarget!, ...(payload!) });
         toast('Bootcamp updated.');
       } else {
         await createBootcamp.mutateAsync(payload);

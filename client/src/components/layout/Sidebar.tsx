@@ -104,7 +104,7 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
           <div className="ml-3 leading-tight">
             <h2 className="text-[0.95rem] font-bold text-text-primary">Club Sessions</h2>
             <span className="text-[0.72rem] text-text-secondary font-normal">
-              {ROLE_LABEL[activeRole] ?? 'BMS'}
+              {ROLE_LABEL[activeRole!] ?? 'BMS'}
               {divisionName && activeRole !== 'super_admin' && (
                 <span className="text-text-muted"> • {divisionName}</span>
               )}

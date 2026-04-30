@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, BookOpen, Users, ClipboardList, UserCog, Calendar, User, Clock } from 'lucide-react';
+import { ArrowLeft, BookOpen, Users, UserCog, Calendar, User, Clock } from 'lucide-react';
 import SessionsTab from './tabs/SessionsTab';
 import GroupsTab from './tabs/GroupsTab';
 import InstructorsTab from './tabs/InstructorsTab';
