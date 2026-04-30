@@ -1,272 +1,233 @@
-import React from 'react';
-import { Mail, Phone, MapPin, Calendar, User, Shield, Briefcase, Pencil, X, CheckCircle, AlertCircle } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import apiFetch from '../utils/api';
+import { useSelector } from 'react-redux';
+import { User, Mail, Shield, Building2, Calendar, CheckCircle } from 'lucide-react';
+import { selectUser, selectActiveRole, selectActiveDivisionId } from '../features/auth/authSlice';
+
+const ROLE_LABELS: Record<string, string> = {
+  super_admin: 'Super Admin',
+  division_admin: 'Division Admin',
+  student: 'Student',
+  instructor: 'Instructor',
+};
+
+const ROLE_COLORS: Record<string, string> = {
+  super_admin: 'bg-danger/10 text-danger',
+  division_admin: 'bg-primary/10 text-primary',
+  student: 'bg-success/10 text-success',
+  instructor: 'bg-info/10 text-info',
+};
 
 export default function ProfilePage() {
-  const { user, loading: authLoading } = useAuth();
-  const [showEdit, setShowEdit] = React.useState(false);
-  const [form, setForm] = React.useState({ name: '', password: '', confirmPassword: '' });
-  const [updating, setUpdating] = React.useState(false);
-  const [toast, setToast] = React.useState(null);
+  const user = useSelector(selectUser);
+  const activeRole = useSelector(selectActiveRole);
+  const activeDivisionId = useSelector(selectActiveDivisionId);
 
-  React.useEffect(() => {
-    if (user) setForm(f => ({ ...f, name: user.name }));
-  }, [user]);
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-60 text-text-muted text-sm">
+        Loading profile...
+      </div>
+    );
+  }
 
-  if (!user) return <div style={{ padding: 40, textAlign: 'center' }}>Loading profile...</div>;
+  const initials = user.name
+    ?.split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) ?? 'U';
 
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3500);
-  };
+  // Find active division
+  const activeMembership = user.memberships?.find(
+    (m: any) => (m.division?._id ?? m.division) === activeDivisionId
+  );
 
-  const handleUpdate = async () => {
-    if (!form.name) return;
-    if (form.password && form.password !== form.confirmPassword) {
-      showToast('Passwords do not match', 'error');
-      return;
-    }
-
-    try {
-      setUpdating(true);
-      const payload = { name: form.name };
-      if (form.password) payload.password = form.password;
-
-      await apiFetch('/users/me', {
-        method: 'PATCH',
-        body: JSON.stringify(payload)
-      });
-
-      showToast('Profile updated successfully!');
-      setShowEdit(false);
-      // Reload or update context if needed, but since we're using useAuth, 
-      // the user might need a refresh or we just manually update the local display if possible.
-      // For now, a simple reload is safest or just assume success.
-      window.location.reload(); 
-    } catch (err) {
-      showToast(err.message, 'error');
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const initials = user.name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
-  const primaryRole = user.roles?.[0]?.replace('_', ' ') || 'Student';
-  const joinDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently';
-
-  // Get unique division names from memberships
-  const userDivisions = user.memberships?.map(m => m.division?.name || 'Unknown') || [];
+  const activeDivision = activeMembership?.division;
+  const divisionName = typeof activeDivision === 'string' ? 'Unknown Division' : activeDivision?.name;
 
   return (
-    <div className="page-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      {toast && (
-        <div className="toast-container">
-          <div className={`toast ${toast.type}`}>
-            <div className="toast-icon">{toast.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}</div>
-            <div className="toast-body">
-              <h4>{toast.type === 'success' ? 'Success' : 'Error'}</h4>
-              <p>{toast.msg}</p>
-            </div>
-          </div>
-        </div>
-      )}
-      <div className="card" style={{ maxWidth: '680px', width: '100%' }}>
-        
-        {/* Profile Header */}
-        <div style={{ 
-          padding: '40px 40px 30px', 
-          textAlign: 'center',
-          borderBottom: '1px solid var(--border)'
-        }}>
-          <div style={{
-            width: '120px',
-            height: '120px',
-            margin: '0 auto 20px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--primary), var(--primary-light))',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            fontSize: '2.8rem',
-            fontWeight: 700,
-            boxShadow: 'var(--shadow-primary)'
-          }}>
+    <div className="flex flex-col gap-5 max-w-4xl mx-auto">
+      {/* Profile Header */}
+      <div className="card">
+        <div className="flex items-start gap-6">
+          <div className="w-24 h-24 rounded-2xl bg-linear-to-br from-primary to-primary-light flex items-center justify-center text-white text-3xl font-black shrink-0 shadow-[0_8px_24px_var(--primary-glow)]">
             {initials}
           </div>
-
-          <h1 style={{ 
-            fontSize: '1.85rem', 
-            fontWeight: 700, 
-            color: 'var(--text-primary)',
-            marginBottom: '6px'
-          }}>
-            {user.name}
-          </h1>
-          
-          <p style={{ 
-            color: 'var(--text-secondary)', 
-            fontSize: '1.05rem',
-            marginBottom: '12px',
-            textTransform: 'capitalize',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8
-          }}>
-            {user.roles.includes('super_admin') && <><Shield size={16} color="var(--danger)" /> {primaryRole}</> }
-            {user.roles.includes('division_admin') && <><Shield size={16} color="var(--info)" /> {primaryRole}</> }
-            {user.roles.includes('student') && <><User size={16} color="var(--primary)" /> {primaryRole}</> }
-          </p>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-            {userDivisions.map((divisionName, idx) => (
-              <span key={idx} style={{
-                background: 'var(--primary-glow)',
-                color: 'var(--primary)',
-                padding: '4px 14px',
-                borderRadius: '9999px',
-                fontSize: '0.75rem',
-                fontWeight: 700
-              }}>
-                {divisionName}
+          <div className="flex-1">
+            <h1 className="text-2xl font-black text-text-primary mb-2">{user.name}</h1>
+            <div className="flex flex-wrap gap-2 mb-3">
+              <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${ROLE_COLORS[activeRole] || 'bg-bg-hover text-text-secondary'}`}>
+                {ROLE_LABELS[activeRole] || activeRole}
               </span>
-            ))}
-          </div>
-
-          {(user.roles.includes('super_admin') || user.roles.includes('division_admin')) && (
-            <button 
-              className="btn btn-secondary" 
-              onClick={() => setShowEdit(true)}
-              style={{ marginTop: '20px', gap: 8 }}
-            >
-              <Pencil size={14} /> Edit Profile
-            </button>
-          )}
-        </div>
-
-        {/* Profile Details */}
-        <div style={{ padding: '32px 40px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-              <ProfileIcon icon={Mail} />
-              <div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '2px' }}>Email Address</p>
-                <p style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{user.email}</p>
-              </div>
+              {user.status === 'active' && (
+                <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-success/10 text-success flex items-center gap-1">
+                  <CheckCircle size={12} />
+                  Active
+                </span>
+              )}
             </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-              <ProfileIcon icon={Briefcase} />
-              <div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '2px' }}>Account Status</p>
-                <p style={{ color: 'var(--text-primary)', fontWeight: 500, textTransform: 'capitalize' }}>{user.status || 'Active'}</p>
+            <div className="flex flex-col gap-2 text-sm text-text-secondary">
+              <div className="flex items-center gap-2">
+                <Mail size={14} className="text-text-muted" />
+                <span>{user.email}</span>
               </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-              <ProfileIcon icon={MapPin} />
-              <div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '2px' }}>Organization</p>
-                <p style={{ color: 'var(--text-primary)', fontWeight: 500 }}>Bootcamp Management System</p>
-              </div>
-            </div>
-
-            {!user.roles.includes('super_admin') && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-                <ProfileIcon icon={Calendar} />
-                <div>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '2px' }}>Member Since</p>
-                  <p style={{ color: 'var(--text-primary)', fontWeight: 500 }}>Joined {joinDate}</p>
+              {divisionName && activeRole !== 'super_admin' && (
+                <div className="flex items-center gap-2">
+                  <Building2 size={14} className="text-text-muted" />
+                  <span>{divisionName}</span>
                 </div>
-              </div>
-            )}
+              )}
+              {user.createdAt && (
+                <div className="flex items-center gap-2">
+                  <Calendar size={14} className="text-text-muted" />
+                  <span>Member since {new Date(user.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-
-        {/* Footer Note */}
-        <div style={{ 
-          padding: '20px 40px', 
-          borderTop: '1px solid var(--border)',
-          background: 'var(--bg-input)',
-          borderRadius: '0 0 var(--radius-lg) var(--radius-lg)',
-          fontSize: '0.85rem',
-          color: 'var(--text-muted)',
-          textAlign: 'center'
-        }}>
-          This profile information is retrieved from your official BMS account.
         </div>
       </div>
 
-      {showEdit && (
-        <div className="modal-overlay">
-          <div className="modal" style={{ maxWidth: '450px' }}>
-            <div className="modal-header">
-              <h2>Edit Profile</h2>
-              <button className="modal-close" onClick={() => setShowEdit(false)}><X size={16} /></button>
-            </div>
-            <div className="modal-form">
-              <div className="form-group">
-                <label>Full Name</label>
-                <input 
-                  className="form-input" 
-                  value={form.name} 
-                  onChange={e => setForm({...form, name: e.target.value})} 
-                />
-              </div>
-              <div style={{ padding: '15px', background: 'var(--bg-input)', borderRadius: '10px', marginTop: '10px' }}>
-                <p style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '10px', color: 'var(--primary)' }}>Change Password</p>
-                <div className="form-group">
-                  <label>New Password</label>
-                  <input 
-                    type="password" 
-                    className="form-input" 
-                    placeholder="Leave blank to keep current" 
-                    value={form.password} 
-                    onChange={e => setForm({...form, password: e.target.value})} 
-                  />
+      {/* Roles & Permissions */}
+      <div className="card">
+        <h2 className="text-lg font-black text-text-primary mb-4 flex items-center gap-2">
+          <Shield size={18} />
+          Roles & Memberships
+        </h2>
+        <div className="flex flex-col gap-3">
+          {user.roles?.includes('super_admin') && (
+            <div className="p-4 bg-danger/5 border border-danger/20 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-danger/10 flex items-center justify-center">
+                    <Shield size={16} className="text-danger" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-text-primary">Super Admin</div>
+                    <div className="text-xs text-text-muted">Global access to all divisions</div>
+                  </div>
                 </div>
-                <div className="form-group" style={{ marginTop: '10px' }}>
-                  <label>Confirm Password</label>
-                  <input 
-                    type="password" 
-                    className="form-input" 
-                    placeholder="Confirm new password" 
-                    value={form.confirmPassword} 
-                    onChange={e => setForm({...form, confirmPassword: e.target.value})} 
-                  />
-                </div>
+                {activeRole === 'super_admin' && (
+                  <span className="text-xs font-bold px-2 py-1 rounded-full bg-primary/10 text-primary">
+                    Active
+                  </span>
+                )}
               </div>
             </div>
-            <div className="modal-actions" style={{ marginTop: '20px' }}>
-              <button className="btn btn-secondary" onClick={() => setShowEdit(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleUpdate} disabled={updating}>
-                {updating ? 'Saving...' : 'Update Profile'}
-              </button>
-            </div>
+          )}
+
+          {user.memberships?.map((membership: any, index: number) => {
+            const division = membership.division;
+            const divName = typeof division === 'string' ? 'Unknown' : division?.name;
+            const isActive = (division?._id ?? division) === activeDivisionId && membership.role === activeRole;
+
+            return (
+              <div
+                key={index}
+                className={`p-4 rounded-lg border ${
+                  isActive
+                    ? 'bg-primary/5 border-primary/20'
+                    : 'bg-bg-hover border-border'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                      isActive ? 'bg-primary/10' : 'bg-bg-card'
+                    }`}>
+                      <Building2 size={16} className={isActive ? 'text-primary' : 'text-text-muted'} />
+                    </div>
+                    <div>
+                      <div className="font-bold text-text-primary">{ROLE_LABELS[membership.role] || membership.role}</div>
+                      <div className="text-xs text-text-muted">{divName}</div>
+                    </div>
+                  </div>
+                  {isActive && (
+                    <span className="text-xs font-bold px-2 py-1 rounded-full bg-primary/10 text-primary">
+                      Active
+                    </span>
+                  )}
+                </div>
+                {membership.permissions && membership.permissions.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {membership.permissions.map((perm: string, i: number) => (
+                      <span
+                        key={i}
+                        className="text-[0.65rem] font-semibold px-2 py-0.5 rounded-full bg-bg-card text-text-muted"
+                      >
+                        {perm.replace(/_/g, ' ')}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Account Information */}
+      <div className="card">
+        <h2 className="text-lg font-black text-text-primary mb-4 flex items-center gap-2">
+          <User size={18} />
+          Account Information
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <div className="text-xs text-text-muted mb-1">Full Name</div>
+            <div className="text-sm font-semibold text-text-primary">{user.name}</div>
           </div>
+          <div>
+            <div className="text-xs text-text-muted mb-1">Email Address</div>
+            <div className="text-sm font-semibold text-text-primary">{user.email}</div>
+          </div>
+          <div>
+            <div className="text-xs text-text-muted mb-1">Account Status</div>
+            <div className="text-sm font-semibold capitalize text-text-primary">{user.status}</div>
+          </div>
+          <div>
+            <div className="text-xs text-text-muted mb-1">User ID</div>
+            <div className="text-sm font-mono text-text-secondary">{user._id}</div>
+          </div>
+          {user.createdAt && (
+            <div>
+              <div className="text-xs text-text-muted mb-1">Account Created</div>
+              <div className="text-sm font-semibold text-text-primary">
+                {new Date(user.createdAt).toLocaleDateString(undefined, {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
+              </div>
+            </div>
+          )}
+          {user.lastLogin && (
+            <div>
+              <div className="text-xs text-text-muted mb-1">Last Login</div>
+              <div className="text-sm font-semibold text-text-primary">
+                {new Date(user.lastLogin).toLocaleDateString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Active Context */}
+      {activeRole !== 'super_admin' && divisionName && (
+        <div className="card bg-primary/5 border-primary/20">
+          <h3 className="font-bold text-text-primary mb-2">Current Context</h3>
+          <p className="text-sm text-text-secondary">
+            You are currently viewing the system as <span className="font-bold text-primary">{ROLE_LABELS[activeRole]}</span>
+            {' '}in the <span className="font-bold text-primary">{divisionName}</span> division.
+            Use the role switcher in the top bar to change your active role or division.
+          </p>
         </div>
       )}
-    </div>
-  );
-}
-
-function ProfileIcon({ icon: Icon }) {
-  return (
-    <div style={{ 
-      width: '48px', 
-      height: '48px', 
-      borderRadius: '12px',
-      background: 'rgba(2, 89, 97, 0.08)',
-      color: 'var(--primary)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0
-    }}>
-      <Icon size={22} />
     </div>
   );
 }

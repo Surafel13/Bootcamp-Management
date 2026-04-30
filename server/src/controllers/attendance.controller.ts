@@ -1,9 +1,12 @@
+// controllers/attendance.controller.ts
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import Attendance from "../models/attendance.model.js";
 import Session from "../models/session.model.js";
 import User from "../models/user.model.js";
-import catchAsync from "../utils/catchAsync.js";
+import Bootcamp from "../models/bootcamp.model.js";
+import Enrollment from "../models/enrollment.model.js";
+import InstructorAssignment from "../models/instructorAssignment.model.js";
 import AppError from "../utils/appError.js";
 import crypto from "crypto";
 import env from "../config/env.js";
@@ -12,260 +15,533 @@ import { Types } from "mongoose";
 import QRCode from "qrcode";
 
 interface TokenPayload extends jwt.JwtPayload {
-	sessionId: string;
-	qrSecret: string;
-	generationCount: number;
-	attendanceType: "present" | "late";
+  sessionId: string;
+  qrSecret: string;
+  attendanceType: "present" | "late";
 }
 
-// Memory store for tokens (Use Redis for multi-server setups)
+// Memory store for tokens
 const usedTokens = new Set();
 const activeTokens = new Map();
 
-export const generateQR = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-	const { sessionId } = req.params;
+// Helper function to check if user has permission for a session
+const hasAttendancePermission = async (userId: Types.ObjectId, sessionId: string): Promise<boolean> => {
+  const session = await Session.findById(sessionId).populate("bootcamp", "division");
+  if (!session) return false;
 
-	// 1. Session must exist
-	const session = await Session.findById(sessionId);
-	if (!session) return next(new AppError("Session not found", 404));
+  const user = await User.findById(userId);
+  if (!user) return false;
 
-	const qrSecret = crypto.randomBytes(16).toString("hex");
+  // Super admin has all permissions
+  if (user.roles.includes("super_admin")) return true;
 
-	// 2. Token expires in 13 seconds
-	const token = jwt.sign({ sessionId, qrSecret }, env.JWT_QR_SECRET || 'qr_scrt', {
-		expiresIn: "13s",
-	});
+  // Division admin for the session's division
+  if (user.roles.includes("division_admin") || user.memberships.find(m => m.division.toString() === session.division.toString())) {
+    const hasDivisionAccess = user.memberships.some(
+      (m) => m.division.toString() === session.division.toString()
+    );
+    if (hasDivisionAccess) return true;
+  }
 
-	activeTokens.set(token, true);
-	setTimeout(() => activeTokens.delete(token), 13000); // Clean up strictly after 13s
+  // Check instructor assignments
+  const instructorAssignment = await InstructorAssignment.findOne({
+    instructor: userId,
+    bootcamp: session.bootcamp,
+    status: "active",
+    startDate: { $lte: new Date() },
+    endDate: { $gte: new Date() },
+  });
 
-	// Generate QR Code base64 image
-	const qrData = JSON.stringify({
-		sessionId,
-		token,
-		issued: new Date().toISOString()
-	});
+  return instructorAssignment?.permissions.includes("manage_attendance") || false;
+};
 
-	const qrImage = await QRCode.toDataURL(qrData);
+// Helper to check if student is enrolled
+const isStudentEnrolled = async (studentId: Types.ObjectId, sessionId: string): Promise<boolean> => {
+  const session = await Session.findById(sessionId).populate("bootcamp");
+  if (!session) return false;
 
-	res.status(200).json({
-		status: "success",
-		qrImage: qrImage,
-		expiresIn: 13
-	});
-});
+  const enrollment = await Enrollment.findOne({
+    student: studentId,
+    bootcamp: session.bootcamp,
+    status: "active",
+  });
 
-export const scanQR = catchAsync(
-	async (req: Request, res: Response, next: NextFunction) => {
-		const { qrToken } = req.body;
-		const studentId = req.user!._id;
+  return !!enrollment;
+};
 
-		if (!qrToken) {
-			return next(new AppError("Missing qrToken", 400));
-		}
+// Generate QR Code for attendance (Admin/Instructor only)
+export const generateQR = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const sessionId = req.params.sessionId as string;
 
-		// 1. Check if token was used
-		if (usedTokens.has(qrToken))
-			return next(new AppError("QR already used", 400));
+    // Check permission
+    const hasPermission = await hasAttendancePermission(req.user!._id, sessionId);
+    if (!hasPermission) {
+      return next(new AppError("You don't have permission to manage attendance for this session", 403));
+    }
 
-		// 2. Verify in active store (redundant but explicit 13s local tracking)
-		if (!activeTokens.has(qrToken))
-			return next(new AppError("QR expired", 400));
+    const session = await Session.findById(sessionId);
+    if (!session) {
+      return next(new AppError("Session not found", 404));
+    }
 
-		try {
-			// 3. Verify JWT (Checks expiration as well)
-			const decoded = jwt.verify(qrToken, env.JWT_QR_SECRET || 'qr_scrt') as TokenPayload;
+    const qrSecret = crypto.randomBytes(16).toString("hex");
 
-			// 4. Token must match sessionId
-			const session = await Session.findById(decoded.sessionId);
-			if (!session) return next(new AppError("Session not found", 404));
+    const token = jwt.sign(
+      { sessionId, qrSecret, attendanceType: "present" },
+      env.JWT_QR_SECRET || 'qr_scrt',
+      { expiresIn: "5m" } // QR valid for 5 minutes
+    );
 
-			// 5. Student must be registered in that session/course
-			const student = await User.findById(studentId);
-			if (!student) return next(new AppError("Student not found", 404));
+    activeTokens.set(token, { sessionId, expiresAt: Date.now() + 5 * 60 * 1000 });
+    setTimeout(() => activeTokens.delete(token), 5 * 60 * 1000);
 
-			// Corrected property name from `divisons` to `divisions` to match the schema definition
-			if (!student.divisions?.some((div: Types.ObjectId) => div.toString() === session.division.toString())) {
-				return next(new AppError("Student does not belong to this division", 403));
-			}
-
-			// 6. Student must not already be marked present
-			const existingAttendance = await Attendance.findOne({
-				student: studentId,
-				session: decoded.sessionId,
-			});
-
-			if (existingAttendance) {
-				return next(new AppError("Already marked attendance", 400));
-			}
-
-			// 7. Calculate status based on token data
-			const status = decoded.attendanceType || "present";
-
-			// 8. Create Attendance
-			await Attendance.create({
-				student: new Types.ObjectId(studentId),
-				session: new Types.ObjectId(decoded.sessionId),
-				status,
-				markedAt: new Date()
-			});
-
-			// 8. Invalidate token
-			usedTokens.add(qrToken);
-			activeTokens.delete(qrToken);
-
-			res.status(200).json({ 
-				status: "success", 
-				message: `Attendance recorded as ${status.toUpperCase()}`,
-				data: {
-					status,
-					studentName: student.name,
-					timestamp: new Date()
-				}
-			});
-		} catch (err) {
-			return next(new AppError("Invalid token or QR expired", 400));
-		}
-	},
-);
-
-export const getSessionAttendance = catchAsync(
-	async (req: Request, res: Response, next: NextFunction) => {
-		const records = await Attendance.find({ session: req.params.sessionId }).populate("student", "name email");
-		res.status(200).json({ status: "success", data: records });
-	}
-);
-
-export const getStudentAttendance = catchAsync(
-	async (req: Request, res: Response, next: NextFunction) => {
-		// Correct the type for `student` in the query
-		const records = await Attendance.find({
-			student: new Types.ObjectId(req.params.studentId as string),
-		}).populate("session", "startTime endTime");
-
-		// Ensure `req.user.id` is properly typed
-		if (!req.user || !req.user._id) {
-			throw new AppError("User not authenticated", 401);
-		}
-		const studentId = req.user._id;
-
-		res.status(200).json({ status: "success", data: records });
-	}
-);
-
-export const manualUpdate = catchAsync(
-	async (req: Request, res: Response, next: NextFunction) => {
-		const attendance = await Attendance.findById(req.params.id).populate(
-			"session",
-		);
-
-		if (!attendance)
-			return next(
-				new AppError("Attendance not found", 404, {
-					attendance: "No record found",
-				}),
-			);
-
-		// Logic: Calculate if 24 hours have passed since the session ended
-		const session = attendance.session as ISession;
-		const sessionEndTime = new Date(session.endTime).getTime();
-		const currentTime = new Date().getTime();
-		const hoursSinceEnd = (currentTime - sessionEndTime) / (1000 * 60 * 60);
-
-		if (hoursSinceEnd > 24) {
-			return next(
-				new AppError("Attendance records are locked after 24 hours.", 403, {
-					time: "Modification window expired",
-				}),
-			);
-		}
-
-		attendance.status = req.body.status;
-		attendance.updatedAt = new Date();
-		await attendance.save();
-
-		res.status(200).json({ status: "success", data: attendance });
-	},
-);
-
-// Fetch all attendance records for admins/instructors
-export const getAllAttendance = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const attendanceRecords = await Attendance.find();
-    res.status(200).json({
-        status: "success",
-        data: attendanceRecords,
+    const qrData = JSON.stringify({
+      sessionId,
+      token,
+      issued: new Date().toISOString(),
+      sessionTitle: session.title,
     });
-});
 
-// Fetch attendance for a specific session
-export const getAttendanceBySession = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const { sessionId } = req.params;
+    const qrImage = await QRCode.toDataURL(qrData);
+
+    res.status(200).json({
+      status: "success",
+      data: {
+        qrImage,
+        expiresIn: 300,
+        sessionTitle: session.title,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Student scans QR code
+export const scanQR = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { qrToken } = req.body;
+    const studentId = req.user!._id;
+
+    if (!qrToken) {
+      return next(new AppError("Missing QR token", 400));
+    }
+
+    // Check if token was used
+    if (usedTokens.has(qrToken)) {
+      return next(new AppError("QR code already used", 400));
+    }
+
+    // Check if token exists in active store
+    const tokenData = activeTokens.get(qrToken);
+    if (!tokenData) {
+      return next(new AppError("QR code has expired", 400));
+    }
+
+    // Verify JWT
+    const decoded = jwt.verify(qrToken, env.JWT_QR_SECRET || 'qr_scrt') as TokenPayload;
+    const session = await Session.findById(decoded.sessionId);
+    
+    if (!session) {
+      return next(new AppError("Session not found", 404));
+    }
+
+    // Check if student is enrolled
+    const isEnrolled = await isStudentEnrolled(studentId, decoded.sessionId);
+    if (!isEnrolled) {
+      return next(new AppError("You are not enrolled in this bootcamp", 403));
+    }
+
+    // Check if within session time window (optional: allow 15min before, 30min after)
+    const now = new Date();
+    const sessionStart = new Date(session.startTime);
+    const sessionEnd = new Date(session.endTime);
+    const gracePeriodStart = new Date(sessionStart.getTime() - 15 * 60 * 1000); // 15min before
+    const gracePeriodEnd = new Date(sessionEnd.getTime() + 30 * 60 * 1000); // 30min after
+
+    if (now < gracePeriodStart || now > gracePeriodEnd) {
+      return next(new AppError("Attendance can only be marked during or near the session time", 400));
+    }
+
+    // Determine status based on time
+    let status: "present" | "late" = "present";
+    if (now > sessionStart) {
+      status = "late";
+    }
+
+    // Check if already marked
+    const existingAttendance = await Attendance.findOne({
+      student: studentId,
+      session: decoded.sessionId,
+    });
+
+    if (existingAttendance) {
+      return next(new AppError("Attendance already marked for this session", 400));
+    }
+
+    // Create attendance record
+    await Attendance.create({
+      student: studentId,
+      session: decoded.sessionId,
+      status,
+      markedAt: new Date(),
+      qrToken,
+    });
+
+    // Invalidate token
+    usedTokens.add(qrToken);
+    activeTokens.delete(qrToken);
+
+    const student = await User.findById(studentId);
+
+    res.status(200).json({
+      status: "success",
+      message: `Attendance recorded as ${status.toUpperCase()}`,
+      data: {
+        status,
+        studentName: student?.name,
+        timestamp: new Date(),
+        sessionTitle: session.title,
+      },
+    });
+  } catch (err) {
+    return next(new AppError("Invalid or expired QR code", 400));
+  }
+};
+
+// Get all attendance (Admin/Division Admin only)
+export const getAllAttendance = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { division, bootcamp, session, fromDate, toDate } = req.query;
+    const filter: Record<string, any> = {};
+
+    const isSuperAdmin = req.user!.roles.includes("super_admin");
+    const isDivisionAdmin = req.user!.roles.includes("division_admin");
+
+    // Build query
+    if (session) {
+      filter.session = session;
+    } else {
+      // Get sessions based on user's access
+      let sessions: any[] = [];
+      
+      if (isSuperAdmin) {
+        const query: any = {};
+        if (division) query.division = division;
+        if (bootcamp) query.bootcamp = bootcamp;
+        sessions = await Session.find(query).select("_id");
+      } else if (isDivisionAdmin) {
+        const userDivisionIds = req.user!.memberships.map((m) => m.division.toString());
+        const query: any = { division: { $in: userDivisionIds } };
+        if (bootcamp) query.bootcamp = bootcamp;
+        sessions = await Session.find(query).select("_id");
+      }
+
+      if (sessions.length > 0) {
+        filter.session = { $in: sessions.map((s) => s._id) };
+      }
+    }
+
+    // Date range filter
+    if (fromDate || toDate) {
+      filter.markedAt = {};
+      if (fromDate) filter.markedAt.$gte = new Date(fromDate as string);
+      if (toDate) filter.markedAt.$lte = new Date(toDate as string);
+    }
+
+    const attendanceRecords = await Attendance.find(filter)
+      .populate("student", "name email")
+      .populate({
+        path: "session",
+        populate: {
+          path: "bootcamp",
+          select: "name",
+        },
+      })
+      .sort("-markedAt");
+
+    // Calculate statistics
+    const stats = {
+      total: attendanceRecords.length,
+      present: attendanceRecords.filter((a) => a.status === "present").length,
+      late: attendanceRecords.filter((a) => a.status === "late").length,
+      absent: attendanceRecords.filter((a) => a.status === "absent").length,
+      excused: attendanceRecords.filter((a) => a.status === "excused").length,
+    };
+
+    res.status(200).json({
+      status: "success",
+      data: {
+        attendance: attendanceRecords,
+        stats,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get attendance for a specific session
+export const getAttendanceBySession = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const sessionId = req.params.sessionId as string;
+
+    // Check permission
+    const hasPermission = await hasAttendancePermission(req.user!._id, sessionId);
+    if (!hasPermission) {
+      return next(new AppError("You don't have permission to view attendance for this session", 403));
+    }
+
+    const session = await Session.findById(sessionId).populate("bootcamp");
+    if (!session) {
+      return next(new AppError("Session not found", 404));
+    }
+
+    // Get all students enrolled in the bootcamp
+    const enrollments = await Enrollment.find({
+      bootcamp: session.bootcamp,
+      status: "active",
+    }).populate("student", "name email");
+
+    // Get attendance records
     const attendanceRecords = await Attendance.find({ session: sessionId });
 
-    if (!attendanceRecords.length) {
-        return next(new AppError("No attendance records found for this session", 404));
-    }
+    // Combine data
+    const attendanceData = enrollments.map((enrollment) => {
+      const attendance = attendanceRecords.find(
+        (a) => a.student.toString() === enrollment.student._id.toString()
+      );
+      return {
+        student: enrollment.student,
+        status: attendance?.status || "absent",
+        markedAt: attendance?.markedAt || null,
+        note: attendance?.note || null,
+        attendanceId: attendance?._id || null,
+      };
+    });
+
+    const stats = {
+      total: attendanceData.length,
+      present: attendanceData.filter((a) => a.status === "present").length,
+      late: attendanceData.filter((a) => a.status === "late").length,
+      absent: attendanceData.filter((a) => a.status === "absent").length,
+      excused: attendanceData.filter((a) => a.status === "excused").length,
+      percentage: Math.round((attendanceData.filter((a) => a.status === "present" || a.status === "late").length / attendanceData.length) * 100),
+    };
 
     res.status(200).json({
-        status: "success",
-        data: attendanceRecords,
+      status: "success",
+      data: {
+        session,
+        attendance: attendanceData,
+        stats,
+      },
     });
-});
+  } catch (error) {
+    next(error);
+  }
+};
 
-// Fetch attendance history for the logged-in student
-export const getMyAttendance = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    // Ensure req.user is defined and has an id property
-    if (!req.user || !req.user._id) {
-        return next(new AppError("User not authenticated", 401));
-    }
+// Get attendance for the logged-in student
+export const getMyAttendance = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const studentId = req.user!._id;
 
-    const studentId = req.user._id;
-    const attendanceRecords = await Attendance.find({ student: studentId });
+    const attendanceRecords = await Attendance.find({ student: studentId })
+      .populate({
+        path: "session",
+        populate: {
+          path: "bootcamp",
+          select: "name",
+        },
+      })
+      .sort("-markedAt");
+
+    const stats = {
+      total: attendanceRecords.length,
+      present: attendanceRecords.filter((a) => a.status === "present").length,
+      late: attendanceRecords.filter((a) => a.status === "late").length,
+      absent: attendanceRecords.filter((a) => a.status === "absent").length,
+      excused: attendanceRecords.filter((a) => a.status === "excused").length,
+    };
 
     res.status(200).json({
-        status: "success",
-        data: attendanceRecords,
+      status: "success",
+      data: {
+        attendance: attendanceRecords,
+        stats,
+      },
     });
-});
+  } catch (error) {
+    next(error);
+  }
+};
 
-// Admin/Instructor manually marks a student (e.g., Excused or Absent)
-export const markManual = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+// Manual mark attendance (Admin/Instructor)
+export const markManual = async (req: Request, res: Response, next: NextFunction) => {
+  try {
     const { studentId, sessionId, status, note } = req.body;
 
     if (!studentId || !sessionId || !status) {
-        return next(new AppError("Student ID, Session ID, and Status are required", 400));
+      return next(new AppError("Student ID, Session ID, and Status are required", 400));
     }
 
     const allowed = ["present", "absent", "late", "excused"];
     if (!allowed.includes(status)) {
-        return next(new AppError("Invalid status", 400));
+      return next(new AppError("Invalid status", 400));
     }
 
-    // Check if session exists
+    // Check permission
+    const hasPermission = await hasAttendancePermission(req.user!._id, sessionId);
+    if (!hasPermission) {
+      return next(new AppError("You don't have permission to mark attendance for this session", 403));
+    }
+
     const session = await Session.findById(sessionId);
-    if (!session) return next(new AppError("Session not found", 404));
+    if (!session) {
+      return next(new AppError("Session not found", 404));
+    }
+
+    // Check if student is enrolled
+    const isEnrolled = await isStudentEnrolled(new Types.ObjectId(studentId), sessionId);
+    if (!isEnrolled) {
+      return next(new AppError("Student is not enrolled in this bootcamp", 400));
+    }
 
     // Check for existing record
-    let attendance = await Attendance.findOne({ student: studentId, session: sessionId });
+    let attendance = await Attendance.findOne({
+      student: studentId,
+      session: sessionId,
+    });
 
     if (attendance) {
-        attendance.status = status;
-        attendance.note = note || attendance.note;
-        attendance.updatedAt = new Date();
-        await attendance.save();
+      attendance.status = status;
+      attendance.note = note || attendance.note;
+      attendance.updatedAt = new Date();
+      attendance.markedBy = req.user!._id;
+      await attendance.save();
     } else {
-        attendance = await Attendance.create({
-            student: studentId,
-            session: sessionId,
-            status,
-            note,
-            markedAt: new Date(),
-        });
+      attendance = await Attendance.create({
+        student: studentId,
+        session: sessionId,
+        status,
+        note,
+        markedAt: new Date(),
+        markedBy: req.user!._id,
+      });
     }
 
     res.status(200).json({
-        status: "success",
-        data: attendance,
+      status: "success",
+      message: `Attendance marked as ${status}`,
+      data: { attendance },
     });
-});
+  } catch (error) {
+    next(error);
+  }
+};
 
+// Update attendance record (Admin/Instructor)
+export const manualUpdate = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = req.params.id as string;
+    const { status, note } = req.body;
+
+    const attendance = await Attendance.findById(id).populate("session");
+    if (!attendance) {
+      return next(new AppError("Attendance record not found", 404));
+    }
+
+    // Check permission
+    const hasPermission = await hasAttendancePermission(req.user!._id, attendance.session.toString());
+    if (!hasPermission) {
+      return next(new AppError("You don't have permission to update attendance for this session", 403));
+    }
+
+    // Check if within 24 hours of session end
+    const session = attendance.session as any;
+    const sessionEndTime = new Date(session.endTime).getTime();
+    const currentTime = new Date().getTime();
+    const hoursSinceEnd = (currentTime - sessionEndTime) / (1000 * 60 * 60);
+
+    if (hoursSinceEnd > 24 && !req.user!.roles.includes("super_admin")) {
+      return next(new AppError("Attendance records can only be modified within 24 hours after the session ends", 403));
+    }
+
+    if (status) attendance.status = status;
+    if (note !== undefined) attendance.note = note;
+    attendance.updatedAt = new Date();
+    attendance.markedBy = req.user!._id;
+    await attendance.save();
+
+    res.status(200).json({
+      status: "success",
+      message: "Attendance updated successfully",
+      data: { attendance },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get attendance statistics for a bootcamp (Admin/Instructor)
+export const getBootcampAttendanceStats = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const  bootcampId  = req.params.bootcampId as string;
+    const { fromDate, toDate } = req.query;
+
+    // Check if user has access to this bootcamp
+    const bootcamp = await Bootcamp.findById(bootcampId);
+    if (!bootcamp) {
+      return next(new AppError("Bootcamp not found", 404));
+    }
+
+    const hasPermission = await hasAttendancePermission(req.user!._id, bootcampId);
+    if (!hasPermission && !req.user!.roles.includes("division_admin")) {
+      return next(new AppError("You don't have permission to view attendance for this bootcamp", 403));
+    }
+
+    // Get all sessions for this bootcamp
+    const sessions = await Session.find({ bootcamp: bootcampId });
+    const sessionIds = sessions.map((s) => s._id);
+
+    // Build date filter
+    const markedAtFilter: any = {};
+    if (fromDate) markedAtFilter.$gte = new Date(fromDate as string);
+    if (toDate) markedAtFilter.$lte = new Date(toDate as string);
+
+    // Get all attendance records
+    const attendanceRecords = await Attendance.find({
+      session: { $in: sessionIds },
+      ...(Object.keys(markedAtFilter).length > 0 && { markedAt: markedAtFilter }),
+    });
+
+    // Get enrollment count
+    const enrollmentCount = await Enrollment.countDocuments({
+      bootcamp: bootcampId,
+      status: "active",
+    });
+
+    const stats = {
+      totalSessions: sessions.length,
+      totalAttendanceRecords: attendanceRecords.length,
+      averageAttendancePerSession: sessions.length > 0 
+        ? Math.round((attendanceRecords.length / sessions.length) * 100) / 100 
+        : 0,
+      statusBreakdown: {
+        present: attendanceRecords.filter((a) => a.status === "present").length,
+        late: attendanceRecords.filter((a) => a.status === "late").length,
+        absent: attendanceRecords.filter((a) => a.status === "absent").length,
+        excused: attendanceRecords.filter((a) => a.status === "excused").length,
+      },
+    };
+
+    res.status(200).json({
+      status: "success",
+      data: { stats },
+    });
+  } catch (error) {
+    next(error);
+  }
+};

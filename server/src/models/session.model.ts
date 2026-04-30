@@ -13,7 +13,7 @@ const sessionSchema = new mongoose.Schema<ISession>({
 	onlineLink: String,
 	startTime: { type: Date, required: true },
 	endTime: { type: Date, required: true },
-	instructor: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+	instructor: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: false },
 	division: {
 		type: mongoose.Schema.Types.ObjectId,
 		ref: "Division",
