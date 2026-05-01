@@ -59,6 +59,16 @@ export const createUserSchema = z.object({
     }
   }
 
+  if (!data.roles.includes("super_admin")) {
+    if (!data.memberships || data.memberships.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "User must be assigned to at least one division.",
+        path: ["memberships"],
+      });
+    }
+  }
+
   if (data.memberships && data.memberships.length > 0) {
     const divisionIds = data.memberships.map(m => m.division);
     const uniqueDivisionIds = [...new Set(divisionIds)];

@@ -59,7 +59,7 @@ export default function MasterSchedulePage() {
             className="input"
             style={{ width: 200 }}
           >
-            <option value="">All Divisions</option>
+            <option value="">All Division</option>
             {divisionsList.map((div: any) => (
               <option key={div._id} value={div._id}>
                 {div.name}
@@ -112,7 +112,7 @@ export default function MasterSchedulePage() {
                       </td>
                       <td className="py-4 px-4">
                         <div className="text-sm font-semibold text-text-primary">
-                          {session.bootcamp?.division?.name || 'N/A'}
+                          {session.division?.name || 'N/A'}
                         </div>
                       </td>
                       <td className="py-4 px-4">
