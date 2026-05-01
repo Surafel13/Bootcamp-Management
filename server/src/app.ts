@@ -1,28 +1,34 @@
 import express from "express";
 import cors from "cors";
+import morgan from "morgan";
+import swaggerJSDoc from "swagger-jsdoc";
+import { apiReference } from "@scalar/express-api-reference";
+
+import "dotenv/config";
+
+// middlewares and utils
 import { errorHandler } from './middlewares/error.middleware.js';
 import { logAction } from "./middlewares/audit.middleware.js";
 import { protect } from "./middlewares/auth.middleware.js";
-import "dotenv/config";
+import validateEnv from "./utils/validateEnv.js";
+import logger from "./utils/logger.js";
 
-import morgan from "morgan";
+// routes
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import divisionRoutes from "./routes/division.routes.js";
-import sessionRoutes from "./routes/session.routes.js";
-import attendanceRoutes from "./routes/attendance.routes.js";
-import taskRoutes from "./routes/task.routes.js";
-import submissionRoutes from "./routes/submission.routes.js";
-import resourceRoutes from "./routes/resource.routes.js";
-import feedbackRoutes from "./routes/feedback.routes.js";
-import groupRoutes from "./routes/group.routes.js";
-import progressRoutes from "./routes/progress.routes.js";
-import notificationRoutes from "./routes/notification.routes.js";
-import reportRoutes from "./routes/report.routes.js";
 import bootcampRoutes from "./routes/bootcamp.routes.js";
-
-import { validateEnv } from "./utils/validateEnv.js";
-import logger from "./utils/logger.js";
+import sessionRoutes from "./routes/session.routes.js";
+import taskRoutes from "./routes/task.routes.js";
+import resourceRoutes from "./routes/resource.routes.js";
+import groupRoutes from "./routes/group.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
+import attendanceRoutes from "./routes/attendance.routes.js";
+import progressRoutes from "./routes/progress.routes.js";
+import enrollmentRoutes from "./routes/enrollment.routes.js";
+import feedbackRoutes from "./routes/feedback.routes.js";
+import submissionRoutes from "./routes/submission.routes.js";
+import reportRoutes from "./routes/report.routes.js";
 
 const app: express.Application = express();
 
@@ -43,6 +49,40 @@ app.use(
   })
 );
 
+const openApiSpec = swaggerJSDoc({
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "Bootcamp Management API",
+      version: "1.0.0",
+      description: "API for managing bootcamp CSEC divisions",
+    },
+    servers: [
+      {
+        url: "http://localhost:3000",
+        description: "Localhost",
+      },
+    ],
+    security: [{
+      bearerAuth: []
+    }],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "bearer",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+        },
+      },
+    },
+  },
+  apis: ["./src/routes/*.ts"],
+})
+
+app.use("/reference", apiReference({
+  sources: [{ spec: { content: openApiSpec } }]
+}));
+
 // Health check before authentication
 app.get("/health", (_req, res) => {
 	res.send("OK");
@@ -62,6 +102,7 @@ app.use("/api/attendance", attendanceRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/resources", resourceRoutes);
+app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/progress", progressRoutes);

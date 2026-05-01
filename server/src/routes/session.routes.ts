@@ -1,17 +1,19 @@
 import { Router } from "express";
 import {
-    createSession,
-    getAllSessions,
-    getSessionById,
-    updateSession,
-    cancelSession,
-    getSessionAttendance,
-    generateQR,
-    getActiveQR
+  createSession,
+  getAllSessions,
+  getSessionById,
+  updateSession,
+  cancelSession,
+  getSessionAttendance,
+  generateQR,
+  getActiveQR
 } from "../controllers/session.controller.js";
-import { restrictTo } from "../middlewares/auth.middleware.js";
+import { protect, restrictTo } from "../middlewares/auth.middleware.js";
 
 const router: Router = Router();
+
+router.use(protect);
 
 router.post("/", restrictTo("division_admin", "super_admin"), createSession);
 
@@ -27,8 +29,8 @@ router.get("/:id/attendance", getSessionAttendance);
 router.post("/:sessionId/generate-qr", generateQR,);
 
 router.get(
-    "/:sessionId/active-qr",
-    getActiveQR
+  "/:sessionId/active-qr",
+  getActiveQR
 );
 
 export default router;

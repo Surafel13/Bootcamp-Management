@@ -42,7 +42,7 @@ export default function UserDropdown() {
           <h4 className="text-sm font-semibold text-text-primary">{user?.name ?? 'User'}</h4>
           <p className="flex items-center gap-1 text-xs text-text-secondary">
             <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block shrink-0" />
-            {ROLE_LABELS[activeRole] ?? activeRole ?? 'Member'}
+            {ROLE_LABELS[activeRole!] ?? activeRole ?? 'Member'}
             {divisionName && <span className="text-text-muted">• {divisionName}</span>}
           </p>
         </div>
