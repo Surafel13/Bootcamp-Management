@@ -37,12 +37,11 @@ function Badge({ text, colorMap }: BadgeProps) {
 const initials = (name?: string) =>
   name?.split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') ?? '?';
 
-const EMPTY_FORM = { name: '', email: '', role: 'student', status: 'active', memberships: [] };
+const EMPTY_FORM = { name: '', email: '', status: 'active', memberships: [] };
 
 interface UserForm {
   name: string;
   email: string;
-  role: string;
   status: string;
   memberships: {
     role: string;
@@ -86,9 +85,11 @@ export default function UsersPage() {
     setForm({
       name: u.name,
       email: u.email,
-      role: u.roles?.[0] ?? 'student',
       status: u.status,
-      memberships: u.memberships
+      memberships: u.memberships?.map((m: any) => ({
+        role: m.role,
+        division: m.division?._id || m.division
+      })) || []
     });
     setEditTarget(u._id);
     setShowModal(true);
@@ -124,13 +125,45 @@ export default function UsersPage() {
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.email) return;
+    // Basic field validation
+    if (!form.name || !form.email) {
+      toast('Name and email are required.', 'error');
+      return;
+    }
+
+    // Membership validation - enforce at least one division
+    if (!form.memberships || form.memberships.length === 0) {
+      toast('User must be assigned to at least one division.', 'error');
+      return;
+    }
+
+    // Validate all memberships have division selected
+    const hasEmptyDivision = form.memberships.some(m => !m.division);
+    if (hasEmptyDivision) {
+      toast('Please select a division for all memberships.', 'error');
+      return;
+    }
+
+    // Automatically derive roles from memberships
+    const roles = form.memberships.some(m => m.role === 'division_admin')
+      ? ['division_admin', 'student']
+      : ['student'];
+
+    // Construct payload with derived roles
+    const payload = {
+      name: form.name,
+      email: form.email,
+      status: form.status,
+      memberships: form.memberships,
+      roles: roles
+    };
+
     try {
       if (editTarget) {
-        await updateUser.mutateAsync({ id: editTarget, ...form });
+        await updateUser.mutateAsync({ id: editTarget, ...payload });
         toast('User updated successfully.');
       } else {
-        await createUser.mutateAsync(form);
+        await createUser.mutateAsync(payload);
         toast('User added successfully.');
       }
       setShowModal(false);
@@ -272,16 +305,6 @@ export default function UsersPage() {
                   value={form.email}
                   onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                 />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[0.82rem] font-semibold text-text-secondary">Primary Role</label>
-                <select
-                  className="px-3 py-2.5 border-[1.5px] border-border rounded-radius-sm bg-bg-input text-text-primary text-sm outline-none transition-all duration-300 focus:border-primary focus:ring-4 focus:ring-primary/15 focus:bg-bg-card cursor-pointer"
-                  value={form.role}
-                  onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
-                >
-                  {ROLES.map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
-                </select>
               </div>
 
               <div className="flex flex-col gap-1.5">
