@@ -43,18 +43,18 @@ async function seed() {
     }
 
     // 2. Seed Admin
-    const hashed = await bcrypt.hash('Admin@123', 12);
+    const hashed = await bcrypt.hash('12345678', 12);
     await User.findOneAndUpdate(
-      { email: 'admin@bms.com' },
+      { email: 'superadmin@gmail.com' },
       { name: 'Super Admin', password: hashed, roles: ['super_admin'], status: 'active' },
       { upsert: true }
     );
     console.log('✅ Super Admin ready.');
 
     // 3. Seed Instructor
-    const iHashed = await bcrypt.hash('Instructor@123', 12);
+    const iHashed = await bcrypt.hash('12345678', 12);
     await User.findOneAndUpdate(
-      { email: 'instructor@bms.com' },
+      { email: 'admin@gmail.com' },
       { 
         name: 'Test Instructor', 
         password: iHashed, 
@@ -67,9 +67,9 @@ async function seed() {
     console.log('✅ Test Instructor ready.');
 
     // 4. Seed Student
-    const sHashed = await bcrypt.hash('Student@123', 12);
+    const sHashed = await bcrypt.hash('12345678', 12);
     await User.findOneAndUpdate(
-      { email: 'student@bms.com' },
+      { email: 'student@gmail.com' },
       { 
         name: 'Test Student', 
         password: sHashed, 

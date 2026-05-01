@@ -169,7 +169,7 @@ function DivisionsPage() {
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-[0.82rem] font-semibold text-text-secondary">Description</label>
-                <input
+                <textarea
                   className="px-3 py-2.5 border-[1.5px] border-border rounded-radius-sm bg-bg-input text-text-primary text-sm outline-none transition-all duration-300 focus:border-primary focus:ring-4 focus:ring-primary/15 focus:bg-bg-card cursor-pointer"
                   placeholder="e.g. CSEC Data Science Division"
                   value={form.description}

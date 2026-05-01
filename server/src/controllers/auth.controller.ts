@@ -20,7 +20,9 @@ export const login =
         }),
       );
 
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.findOne({ email })
+      .select("+password")
+      .populate("memberships.division", "name code description");
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return next(
@@ -263,6 +265,7 @@ export const changePassword =
 export const switchRole =
   async (req: Request, res: Response, next: NextFunction) => {
     const { role, divisionId } = req.body;
+    console.log("Switching role to:", role, "with divisionId:", divisionId);
     const user = req.user!;   
 
     if (!user.memberships.find(m => m.role === role)) {
@@ -276,6 +279,7 @@ export const switchRole =
           m.role === role &&
           (!divisionId || m.division.toString() === divisionId),
       );
+      console.log(membership)
       if (!membership) {
         return next(new AppError("Invalid role/division combination", 403, { role: "No matching membership" }));
       }

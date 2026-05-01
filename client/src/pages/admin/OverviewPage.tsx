@@ -162,6 +162,10 @@ export default function OverviewPage() {
                   paddingAngle={5}
                   dataKey="value"
                   label={({ name, percent }) => `${name} ${(percent! * 100).toFixed(0)}%`}
+                  shape={(props: any) => {
+                    const { index } = props;
+                    return <path {...props} fill={COLORS[index % COLORS.length]} />;
+                  }}
                 >
                   {studentDistribution.map((_: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -227,19 +231,17 @@ export default function OverviewPage() {
                     <td className="py-4 px-4 text-sm text-text-secondary">{item.students}</td>
                     <td className="py-4 px-4 text-sm text-text-secondary">{item.sessions}</td>
                     <td className="py-4 px-4">
-                      <span className={`text-sm font-semibold ${
-                        item.avgAttendance >= 80 ? 'text-success' :
+                      <span className={`text-sm font-semibold ${item.avgAttendance >= 80 ? 'text-success' :
                         item.avgAttendance >= 60 ? 'text-warning' :
-                        'text-danger'
-                      }`}>
+                          'text-danger'
+                        }`}>
                         {item.avgAttendance}%
                       </span>
                     </td>
                     <td className="py-4 px-4">
-                      <span className={`text-xs px-2.5 py-1 rounded-full capitalize font-semibold ${
-                        item.status === 'active' ? 'bg-success/10 text-success' :
+                      <span className={`text-xs px-2.5 py-1 rounded-full capitalize font-semibold ${item.status === 'active' ? 'bg-success/10 text-success' :
                         'bg-text-muted/10 text-text-muted'
-                      }`}>
+                        }`}>
                         {item.status}
                       </span>
                     </td>

@@ -5,6 +5,19 @@ import logger from "./utils/logger.js";
 import type { Server } from "http";
 import { initCronJobs } from "./services/cron.service.js";
 
+import bcrypt from "bcrypt";
+
+const plainPassword = "12345678";
+const saltRounds = 10;
+
+bcrypt.hash(plainPassword, saltRounds, function(err, hash) {
+    if (err) {
+        console.log("Error hashing password:", err);
+    } else {
+        console.log("Hashed password:", hash);
+    }
+});
+
 const PORT = env.PORT;
 
 let server: Server;

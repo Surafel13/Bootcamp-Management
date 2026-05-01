@@ -26,7 +26,8 @@ export const protect = async (req: Request, _res: Response, next: NextFunction) 
 
     const decoded = jwt.verify(token, env.JWT_SECRET) as TokenPayload;
 
-    const user = await User.findById(decoded.id);
+    const user = await User.findById(decoded.id)
+      .populate("memberships.division", "name code description");
 
     if (!user)
       return next(
